@@ -1,4 +1,4 @@
-# hu-date-picker
+# date-picker
 POC date-picker. Consistent across browsers.
 
 ## Running Locally
