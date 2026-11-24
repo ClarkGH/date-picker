@@ -8,6 +8,8 @@ Each phase ends with a check: something you can run that proves the phase is don
 
 ## Where we are
 
+**Parked 2026-11-24, before Phase 0.** Nothing has been built. It may never be picked up again. Start with the Phase 0 decisions if it is.
+
 - [ ] Phase 0: decisions
 - [ ] Phase 1: toolchain upgrade (Lit 3, TypeScript 5)
 - [ ] Phase 2: package shape
@@ -28,8 +30,8 @@ Each phase ends with a check: something you can run that proves the phase is don
 
 ## Phase 0: decisions
 
-- [ ] **Package name.** Recommended: a scoped name (`@<npm-user>/date-picker`). Unscoped `hu-date-picker` also works if it's free on npm. Check with `pnpm view <name>`.
-- [ ] **Tag name.** `date-picker` is generic, and defining the same custom element name twice throws. Two libraries using that name, or two copies of this one, will crash. Recommended: `hu-date-picker`.
+- [ ] **Package name.** Recommended: a scoped name (`@<npm-user>/date-picker`), which can't clash with anyone else's. Check any unscoped name with `pnpm view <name>`.
+- [ ] **Tag name.** `date-picker` is generic, and defining the same custom element name twice throws. Two libraries using that name, or two copies of this one, will crash. Recommended: a short prefix of your own (`<prefix>-date-picker`).
 - [ ] **Registration.** (a) Importing the package registers the tag, like today. (b) The main entry exports the class without registering it, and `/define` registers it. Recommended: **(b) plus a guard** (`if (!customElements.get(tag))`), so an app can also register the class under its own tag name.
 - [ ] **Event name.** Keep `change`, or rename it to `date-change`. `change` reads naturally in Vue and Lit, but React treats `onChange` specially, and it's unclear how React 19 maps it onto a custom element. [VERIFY] Phase 3's React 19 app settles this. Decide here, or wait until Phase 3 and decide then.
 - [ ] **Oldest React supported.** React 19 only (no adapter needed), or React 18 as well (Phase 6 builds an `@lit/react` wrapper). Recommended: support 18. Plenty of apps are still on it, and the wrapper is small.
