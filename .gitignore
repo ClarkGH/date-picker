@@ -106,3 +106,6 @@ dist
 # Playwright
 /test-results/
 /playwright-report/
+
+# Private notes
+docs/tech-debt.md
