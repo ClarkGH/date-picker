@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>date-picker e2e fixture</title>
+    <link rel="stylesheet" href="/src/index.css" />
+    <script type="module" src="/src/date-picker.ts"></script>
+  </head>
+  <!-- Test-only page: a form, a fieldset, and a spacer so there's room to scroll -->
+  <body>
+    <main class="demo">
+      <h1>Fixture</h1>
+      <form id="form">
+        <date-picker id="plain" name="when" label="Meeting date"></date-picker>
+        <date-picker id="required" name="due" label="Due date" required></date-picker>
+        <date-picker id="defaulted" name="start" label="Start date" selectedDate="07/04/1999"></date-picker>
+        <fieldset id="fieldset">
+          <legend>Disabled group</legend>
+          <date-picker id="grouped" name="grouped" label="Grouped date"></date-picker>
+        </fieldset>
+        <button type="submit">Submit</button>
+      </form>
+      <div style="height: 1500px" aria-hidden="true"></div>
+      <date-picker id="far" label="Far date"></date-picker>
+      <div style="height: 1500px" aria-hidden="true"></div>
+    </main>
+    <script>
+      window.submitted = null;
+      document.getElementById('form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        window.submitted = Object.fromEntries(new FormData(e.target));
+      });
+    </script>
+  </body>
+</html>

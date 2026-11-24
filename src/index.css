@@ -32,6 +32,30 @@ body {
   min-height: 100vh;
 }
 
+/*
+ * Demo layout: one centered column. It starts about 15% down instead of at the vertical center,
+ * so the calendar (up to ~650px tall) has room to open below the field.
+ */
+.demo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 15vh 1rem 2rem;
+  text-align: center;
+}
+
+.demo h1 {
+  margin: 0;
+}
+
+/* The field's own text stays left-aligned; only its box is centered */
+.demo date-picker {
+  text-align: left;
+}
+
 @media (prefers-color-scheme: light) {
   :root {
     color: #213547;
