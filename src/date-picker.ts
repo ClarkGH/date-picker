@@ -24,47 +24,38 @@ import {
 } from './date-utils';
 import { DatePickerStringOverrides, resolveStrings } from './strings';
 
-/**
- * How far the year dropdown reaches either side of today. 201 options: enough for birthdays
- * and planning, without a 1,001-option list ("1 of 1001" to a screen reader).
- */
+/** Years either side of today in the dropdown. Wider lists are slow for screen readers ("1 of 1001"). */
 const YEAR_SPAN = 100;
 
 const FALLBACK_LOCALE = 'en-US';
 
-/** Why the field is invalid, or null. 'required' only comes from an empty required field. */
 type FieldProblem = Exclude<DateValidation, { ok: true }> | { ok: false; problem: 'required' };
 
 export type DatePickerChangeEvent = CustomEvent<{ value: string }>;
 
 /**
- * `<date-picker>`: a text input plus a calendar popup.
- * Value is MM/DD/YYYY or ''. Fires `change` with `detail.value` when the committed value changes.
- * Follows the WAI-ARIA APG date picker combobox pattern: the input is a combobox that opens a
- * non-modal calendar dialog, so typing in the field keeps working while the calendar is open.
- * Form-associated: give it a `name` and it submits with its <form> like a native input.
+ * `<date-picker>`: a text input plus a calendar popup (WAI-ARIA APG date picker combobox).
+ * Value is MM/DD/YYYY or ''. Fires `change` with `detail.value` when the value changes.
+ * Form-associated: give it a `name` and it submits with its <form>.
  * How it works and why: docs/date-picker.md
  */
 @customElement('date-picker')
 export class DatePicker extends LitElement {
-  /** Lets the element join <form>s through ElementInternals. */
   static formAssociated = true;
 
-  /** `picker.focus()` (and clicking the label) focuses the input inside the shadow root. */
+  /** delegatesFocus: `picker.focus()` and label clicks reach the inner input. */
   static shadowRootOptions: ShadowRootInit = { ...LitElement.shadowRootOptions, delegatesFocus: true };
 
   /** The committed value: always a valid MM/DD/YYYY string, or '' when empty. */
   @property({ type: String })
   selectedDate = '';
 
-  /** True when the input holds a real date. False when empty or invalid. */
-  @property({ type: Boolean })
-  isFieldValid = false;
+  /** True when the input holds a real date. False when empty or invalid. Read-only. */
+  get isFieldValid(): boolean {
+    return this._text.trim() !== '' && this._currentProblem() === null;
+  }
 
-  /**
-   * The visible label, which is also the input's accessible name. Rendered inside the
-   * component because a page's `<label for>` can't reach an input inside a shadow root.
-   */
+  /** Visible label, and the input's accessible name. */
   @property({ type: String })
   label = 'Date';
 
@@ -80,7 +71,7 @@ export class DatePicker extends LitElement {
 
   /**
    * BCP 47 tag for month and weekday names, and the button's spoken date. The typed format
-   * stays MM/DD/YYYY whatever the locale. An invalid tag falls back to en-US with a warning.
+   * stays MM/DD/YYYY. An invalid tag falls back to en-US with a warning.
    */
   @property({ type: String })
   locale = FALLBACK_LOCALE;
@@ -89,39 +80,31 @@ export class DatePicker extends LitElement {
   @property({ attribute: false })
   strings: DatePickerStringOverrides = {};
 
-  /** The month/year the calendar is showing, which is not necessarily the selected one. */
   @state() private _viewYear = new Date().getFullYear();
   @state() private _viewMonth = new Date().getMonth() + 1;
-
-  /** The day in the view month that holds the grid's single tab stop (roving tabindex). */
+  /** The grid's single tab stop (roving tabindex). */
   @state() private _focusDay = 1;
-
-  /** What the input shows. Differs from selectedDate while the typed text is invalid. */
+  /** What the input shows. Differs from selectedDate while the text is invalid. */
   @state() private _text = '';
-  /** The problem shown under the field. Set on blur/commit, not on every keystroke. */
+  /** Set on blur and Enter, not on every keystroke. */
   @state() private _shownProblem: FieldProblem | null = null;
   @state() private _isOpen = false;
-  /** Set by a disabled <fieldset> or form, separately from our own `disabled`. */
+  /** From a disabled <fieldset> or form, separate from `disabled`. */
   @state() private _formDisabled = false;
 
-  @query('.input-container') private _anchor!: HTMLElement;
+  @query('.input-container') private _anchor!: HTMLElement | null;
   @query('input') private _input!: HTMLInputElement | null;
-  @query('.toggle') private _button!: HTMLButtonElement;
+  @query('.toggle') private _button!: HTMLButtonElement | null;
   @query('.date-picker') private _calendar!: HTMLElement | null;
   @query('td[tabindex="0"]') private _activeCell!: HTMLElement | null;
 
-  /** One Popper instance per open calendar. Created after render, destroyed on close. */
   private _popper: Instance | null = null;
 
-  /**
-   * Null where form association isn't supported (Safari before 16.4, jsdom). The picker
-   * still works there; it just doesn't take part in forms.
-   */
+  /** Null where form association isn't supported (Safari before 16.4, jsdom). */
   private _internals: ElementInternals | null;
 
-  private _warnedLocale: string | null = null;
-
-  // ---- lifecycle ----
+  /** Cached because render reads `_locale` several times. */
+  private _checkedLocale: { tag: string; resolved: string } | null = null;
 
   constructor() {
     super();
@@ -131,12 +114,10 @@ export class DatePicker extends LitElement {
   }
 
   protected willUpdate(changed: PropertyValues<this>) {
-    // A page setting `selectedDate` from outside: sync the field and the calendar to it
     if (changed.has('selectedDate')) this._syncFromValue(this.selectedDate);
     if (this._isDisabled && this._isOpen) this._close();
   }
 
-  /** Form value and validity follow every render, so they can't drift from what's on screen. */
   protected updated() {
     this._syncForm();
   }
@@ -146,27 +127,24 @@ export class DatePicker extends LitElement {
     this._close();
   }
 
+  /** Rule 1: a loose date is stored as MM/DD/YYYY; a non-date is shown but never kept. */
   private _syncFromValue(value: string) {
     const parsed = parseDate(value);
     if (parsed) {
       this._text = formatDate(parsed);
       this._showDate(parsed);
       this._shownProblem = null;
-      this.isFieldValid = true;
+      this.selectedDate = this._text;
     } else {
-      // '' clears the field; any other unparseable string is shown as-is and marked invalid
       this._text = value;
-      this.isFieldValid = false;
+      this.selectedDate = '';
     }
   }
-
-  // ---- forms ----
 
   private get _isDisabled() {
     return this.disabled || this._formDisabled;
   }
 
-  /** Validity of what's in the field right now, typed or committed. */
   private _currentProblem(): FieldProblem | null {
     const text = this._text.trim();
     if (text === '') return this.required ? { ok: false, problem: 'required' } : null;
@@ -178,13 +156,13 @@ export class DatePicker extends LitElement {
     const internals = this._internals;
     if (!internals) return;
 
-    internals.setFormValue(this.selectedDate);
     const problem = this._currentProblem();
+    // Text that isn't a date submits '', like a native date input, not the last valid date
+    internals.setFormValue(problem ? '' : this.selectedDate);
     if (this._isDisabled || !problem || !this._input) {
       internals.setValidity({});
     } else {
       const flags = problem.problem === 'required' ? { valueMissing: true } : { badInput: true };
-      // The input is the anchor, so the browser's validation bubble points at it
       internals.setValidity(flags, this._message(problem), this._input);
     }
   }
@@ -192,6 +170,7 @@ export class DatePicker extends LitElement {
   /** The `selecteddate` attribute is the default value, like `value` on a native input. */
   formResetCallback() {
     this.selectedDate = this.getAttribute('selecteddate') ?? '';
+    // Also runs when the value didn't change, to clear any typed text
     this._syncFromValue(this.selectedDate);
     this._shownProblem = null;
   }
@@ -200,25 +179,24 @@ export class DatePicker extends LitElement {
     this._formDisabled = disabled;
   }
 
-  /** Back/forward navigation and autofill restore the value the form last had. */
   formStateRestoreCallback(state: string | File | FormData | null) {
     if (typeof state === 'string') this.selectedDate = state;
   }
 
-  // ---- strings and locale ----
-
-  /** The locale to use. An invalid tag would make Intl throw mid-render, so fall back instead. */
+  /** Falls back instead of letting a bad tag make Intl throw mid-render. */
   private get _locale(): string {
-    try {
-      Intl.DateTimeFormat.supportedLocalesOf(this.locale); // throws RangeError on a bad tag
-      return this.locale;
-    } catch {
-      if (this._warnedLocale !== this.locale) {
-        this._warnedLocale = this.locale;
-        console.warn(`date-picker: invalid locale "${this.locale}", using ${FALLBACK_LOCALE}`);
+    const tag = this.locale;
+    if (this._checkedLocale?.tag !== tag) {
+      let resolved = tag;
+      try {
+        Intl.DateTimeFormat.supportedLocalesOf(tag);
+      } catch {
+        console.warn(`date-picker: invalid locale "${tag}", using ${FALLBACK_LOCALE}`);
+        resolved = FALLBACK_LOCALE;
       }
-      return FALLBACK_LOCALE;
+      this._checkedLocale = { tag, resolved };
     }
+    return this._checkedLocale.resolved;
   }
 
   private _message(problem: FieldProblem): string {
@@ -226,6 +204,7 @@ export class DatePicker extends LitElement {
     switch (problem.problem) {
       case 'required': return errors.required;
       case 'two-digit-year': return errors.twoDigitYear;
+      case 'year': return errors.year;
       case 'month': return errors.month;
       case 'day': return errors.day(
         monthNames(this._locale)[problem.month - 1],
@@ -235,8 +214,6 @@ export class DatePicker extends LitElement {
       default: return errors.format;
     }
   }
-
-  // ---- open / close ----
 
   private _toggle() {
     if (this._isOpen) {
@@ -249,52 +226,50 @@ export class DatePicker extends LitElement {
   private async _open() {
     if (this._isOpen || this._isDisabled) return;
 
-    // Always start on the field's date, or today when the field is empty or invalid
     this._showDate(parseDate(this._text) ?? today());
     this._isOpen = true;
     document.addEventListener('pointerdown', this._onDocumentPointerDown);
 
-    // Lit renders async: the calendar element doesn't exist until this resolves
     await this.updateComplete;
 
-    // Closed, or opened twice, while we were waiting
-    if (!this._isOpen || this._popper || !this._calendar) return;
+    // Closed, or opened twice, while waiting for the render
+    if (!this._isOpen || this._popper || !this._anchor || !this._calendar) return;
 
     try {
+      // The top layer escapes overflow clipping and z-index. Without the popover API it's in normal flow
+      // TypeScript 4.9's DOM types predate popovers; drop the cast after the upgrade
+      const calendar = this._calendar as HTMLElement & { showPopover?: () => void };
+      if (typeof calendar.showPopover === 'function') calendar.showPopover();
       this._popper = createPopper(this._anchor, this._calendar, {
         placement: 'bottom',
         modifiers: [{ name: 'offset', options: { offset: [0, 8] } }],
       });
-      // Popper's first positioning is async. Focusing before it lands scrolls the page to the
-      // calendar's temporary spot, then Popper moves it. forceUpdate positions it right now
+      // Popper positions async. Focusing first would scroll the page to the calendar's temporary spot
       this._popper.forceUpdate();
     } catch (err) {
-      // The calendar still works unpositioned, in normal flow below the input
+      // Unpositioned, the calendar still works in normal flow below the input
       console.error('date-picker: could not position calendar', err);
     }
 
     this._activeCell?.focus();
   }
 
-  /** `returnFocus` sends focus back to the button, for closes that happen inside the calendar. */
   private _close({ returnFocus = false } = {}) {
     this._popper?.destroy();
     this._popper = null;
     document.removeEventListener('pointerdown', this._onDocumentPointerDown);
     this._isOpen = false;
-    if (returnFocus) this._button.focus();
+    if (returnFocus) this._button?.focus();
   }
 
-  /** Arrow function so add/removeEventListener get the same reference. */
   private _onDocumentPointerDown = (e: Event) => {
-    // composedPath sees through shadow roots; e.target would be retargeted to the host
+    // e.target is retargeted to the host; composedPath sees the real element
     if (!e.composedPath().includes(this)) this._close();
   };
 
   /**
-   * Non-modal dialog: when focus leaves the component (Tab past the grid, Shift+Tab past the
-   * input), close. Focus moving between our own elements arrives with relatedTarget retargeted
-   * to the host. A null relatedTarget (switching windows) leaves it open.
+   * Closes when focus leaves the component. Moves inside the shadow root arrive with
+   * relatedTarget retargeted to the host. A null relatedTarget (switching windows) keeps it open.
    */
   private _onFocusOut = (e: FocusEvent) => {
     if (!this._isOpen) return;
@@ -303,15 +278,12 @@ export class DatePicker extends LitElement {
     this._close();
   };
 
-  // ---- view and focus ----
-
   private _showDate(date: CalendarDate) {
     this._viewYear = date.year;
     this._viewMonth = date.month;
     this._focusDay = date.day;
   }
 
-  /** Change month/year from the dropdowns, keeping the focus day inside the new month. */
   private _setView(year: number, month: number) {
     this._viewYear = year;
     this._viewMonth = month;
@@ -324,9 +296,7 @@ export class DatePicker extends LitElement {
     this._activeCell?.focus();
   }
 
-  // ---- value ----
-
-  /** Single exit point for value changes, so `change` fires once and only on a real change. */
+  /** Rule 2: the only place the value changes, so `change` fires once per real change. */
   private _commit(value: string) {
     if (value === this.selectedDate) return;
     this.selectedDate = value;
@@ -335,10 +305,7 @@ export class DatePicker extends LitElement {
     );
   }
 
-  /**
-   * While typing, the calendar follows the field: once the text is a complete date, the view
-   * jumps to it. Nothing is committed and no error shows until blur.
-   */
+  /** The calendar follows the typing. Nothing commits until blur or Enter. */
   private _onInput(e: Event) {
     this._text = (e.target as HTMLInputElement).value;
     const parsed = parseDate(this._text);
@@ -349,31 +316,25 @@ export class DatePicker extends LitElement {
     this._commitText((e.target as HTMLInputElement).value);
   }
 
-  /** Blur and Enter both end up here: commit valid text, or show what's wrong with it. */
   private _commitText(text: string) {
     const raw = text.trim();
     this._text = raw;
 
     if (raw === '') {
       this._shownProblem = this.required ? { ok: false, problem: 'required' } : null;
-      this.isFieldValid = false;
       this._commit('');
       return;
     }
 
     const result = validateDate(raw);
     if (!result.ok) {
-      // Keep their text so they can fix it, rather than wiping it
       this._shownProblem = result;
-      this.isFieldValid = false;
       return;
     }
 
-    // Looser input (4/3/2023, 4-3-2023) is written back in the one format we output
     const value = formatDate(result.date);
     this._text = value;
     this._shownProblem = null;
-    this.isFieldValid = true;
     this._showDate(result.date);
     this._commit(value);
   }
@@ -382,7 +343,6 @@ export class DatePicker extends LitElement {
     const value = formatDate({ year: this._viewYear, month: this._viewMonth, day });
     this._text = value;
     this._shownProblem = null;
-    this.isFieldValid = true;
     this._commit(value);
     this._close({ returnFocus: true });
   }
@@ -397,17 +357,10 @@ export class DatePicker extends LitElement {
     if (Number.isInteger(year)) this._setView(year, this._viewMonth);
   }
 
-  // ---- keyboard ----
-
-  /**
-   * Combobox keys on the input and the button. Down (or Alt+Down) opens the calendar, or moves
-   * into it if it's already open. Escape closes it and leaves focus where the user is.
-   */
   private _onTriggerKeydown(e: KeyboardEvent) {
     const input = this._input;
     if (e.key === 'Enter' && input && e.target === input) {
-      // A text input inside a shadow root doesn't submit the outer form on Enter, so do both
-      // jobs by hand: commit what's typed, then submit (which runs validation, like native)
+      // An input inside a shadow root doesn't submit the outer form on Enter, so do it by hand
       this._commitText(input.value);
       this._syncForm();
       this._internals?.form?.requestSubmit();
@@ -424,7 +377,6 @@ export class DatePicker extends LitElement {
     }
   }
 
-  /** Escape anywhere in the calendar closes it and returns focus to the button. */
   private _onCalendarKeydown(e: KeyboardEvent) {
     if (e.key === 'Escape') {
       e.preventDefault();
@@ -432,7 +384,6 @@ export class DatePicker extends LitElement {
     }
   }
 
-  /** Grid keys from the APG date picker pattern. Moves can cross into other months and years. */
   private _onGridKeydown(e: KeyboardEvent) {
     const from: CalendarDate = { year: this._viewYear, month: this._viewMonth, day: this._focusDay };
     let to: CalendarDate;
@@ -448,20 +399,18 @@ export class DatePicker extends LitElement {
       case 'PageDown': to = addMonths(from, e.shiftKey ? 12 : 1); break;
       case 'Enter':
       case ' ':
-        e.preventDefault(); // Space would otherwise scroll the page
+        e.preventDefault();
         this._selectDay(from.day);
         return;
       default:
-        return; // Escape bubbles up to _onCalendarKeydown; Tab is left to the browser
+        return; // Escape bubbles up to _onCalendarKeydown
     }
 
-    e.preventDefault(); // arrows and PageUp/Down would otherwise scroll the page
+    e.preventDefault();
     if (isInRange(to)) void this._moveFocus(to);
   }
 
-  // ---- render ----
-
-  /** Today ± YEAR_SPAN, stretched to include the shown year if a typed date falls outside it. */
+  /** Stretches past ±YEAR_SPAN to include a typed year outside it. */
   private _renderYearOptions() {
     const thisYear = new Date().getFullYear();
     const years = yearRange(
@@ -496,7 +445,7 @@ export class DatePicker extends LitElement {
     const weeks: (number | null)[][] = [];
     for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
 
-    // Highlight what the field says, so the calendar and the text never disagree
+    // Rule 4: highlight the field's text, not selectedDate
     const selected = parseDate(this._text);
     const now = today();
 
@@ -504,6 +453,7 @@ export class DatePicker extends LitElement {
       <div
         id="calendar"
         class="date-picker"
+        popover="manual"
         role="dialog"
         aria-label=${strings.dialog}
         @keydown=${this._onCalendarKeydown}
@@ -542,7 +492,6 @@ export class DatePicker extends LitElement {
   render() {
     const strings = resolveStrings(this.strings);
     const selected = parseDate(this.selectedDate);
-    // With a date set, the button says which one, for users who tab past the field (APG)
     const buttonLabel = selected
       ? strings.changeDate(formatLongDate(selected, this._locale))
       : strings.chooseDate;
@@ -583,7 +532,6 @@ export class DatePicker extends LitElement {
           </svg>
         </button>
       </div>
-      <!-- The placeholder vanishes once you type, so the format also lives here, always visible -->
       <p id="hint" class="hint">${strings.hint}</p>
       <p id="error" class="error" role="alert">${this._shownProblem ? this._message(this._shownProblem) : ''}</p>
       ${this._isOpen ? this._renderCalendar() : nothing}
@@ -591,14 +539,7 @@ export class DatePicker extends LitElement {
   }
 
   static styles = css`
-    /*
-     * Error color: 6.5:1 on white, 9.1:1 on #242424 (WCAG 1.4.3 needs 4.5:1). Follows the OS
-     * theme; a page whose background doesn't match can set --date-picker-error-color.
-     */
-    /*
-     * The host is as wide as the field (280px), not the calendar. The calendar floats via
-     * Popper, centered under the field, so pages can center the host like any input.
-     */
+    /* Error colors: 6.5:1 on white, 9.1:1 on #242424 (WCAG 1.4.3 needs 4.5:1) */
     :host {
       --_error: var(--date-picker-error-color, #b3261e);
       display: flex;
@@ -607,14 +548,14 @@ export class DatePicker extends LitElement {
       max-width: 280px;
     }
 
-    .label {
-      margin-bottom: 4px;
-    }
-
     @media (prefers-color-scheme: dark) {
       :host {
         --_error: var(--date-picker-error-color, #f2b8b5);
       }
+    }
+
+    .label {
+      margin-bottom: 4px;
     }
 
     .input-container {
@@ -623,8 +564,9 @@ export class DatePicker extends LitElement {
       align-items: center;
     }
 
-    /* min-height keeps the calendar button at least 24x24 (WCAG 2.5.8) */
+    /* Form controls don't inherit the page font. min-height keeps the button 24x24 (WCAG 2.5.8) */
     input {
+      font: inherit;
       flex: 1;
       min-width: 0;
       min-height: 2rem;
@@ -654,7 +596,7 @@ export class DatePicker extends LitElement {
       opacity: 0.5;
     }
 
-    /* Inset by the button's 4px padding, which absolute positioning would otherwise ignore */
+    /* Absolute positioning ignores the button's padding, so inset by it */
     svg {
       position: absolute;
       inset: 4px;
@@ -678,28 +620,33 @@ export class DatePicker extends LitElement {
     }
 
     /*
-     * Popper floats this over the page, so it needs its own background. Canvas follows color-scheme.
-     * Shrinks to fit narrow screens and 400% zoom (WCAG 1.4.10) instead of scrolling sideways.
-     * Popper's preventOverflow keeps it on screen; max-height + overflow covers short viewports.
+     * rem, min() and max-height keep it usable at large text and 400% zoom (WCAG 1.4.4, 1.4.10).
+     * inset and margin undo the popover's centering so Popper's position applies.
      */
     .date-picker {
+      inset: auto;
+      margin: 0;
       display: flex;
       flex-direction: column;
       box-sizing: border-box;
-      font-size: 16px;
+      font-size: var(--date-picker-font-size, 1rem);
       width: min(400px, calc(100vw - 16px));
       max-height: calc(100vh - 16px);
       overflow-y: auto;
       padding: 8px;
-      border: 1px solid currentColor;
-      background: Canvas;
-      color: CanvasText;
-      z-index: 1;
+      border: 1px solid var(--date-picker-border-color, currentColor);
+      border-radius: var(--date-picker-radius, 0);
+      background: var(--date-picker-background, Canvas);
+      color: var(--date-picker-text-color, CanvasText);
     }
 
     .month-year__picker {
       display: flex;
       justify-content: space-between;
+    }
+
+    select {
+      font: inherit;
     }
 
     table {
@@ -710,7 +657,7 @@ export class DatePicker extends LitElement {
 
     th,
     td {
-      border: 1px solid currentColor;
+      border: 1px solid var(--date-picker-border-color, currentColor);
       padding: clamp(2px, 1vw, 10px);
       text-align: left;
       vertical-align: top;
@@ -720,7 +667,6 @@ export class DatePicker extends LitElement {
       font-weight: normal;
     }
 
-    /* 100px on wide screens, never below 2.75rem (a comfortable touch target) */
     tbody td {
       height: clamp(2.75rem, 12vw, 100px);
       box-sizing: border-box;
@@ -731,10 +677,8 @@ export class DatePicker extends LitElement {
     }
 
     /*
-     * Two-tone ring: a CanvasText outline with a Canvas band inside it. Whatever the cell's
-     * background (plain, or Highlight when selected), one of the two tones contrasts with it.
-     * A single Highlight outline vanished on the selected day. Forced-colors mode drops the
-     * box-shadow and keeps the outline
+     * Two tones so one always contrasts with the cell, selected or not. Deliberately not
+     * themeable: a themed ring can match the cell and vanish.
      */
     .day:focus-visible {
       outline: 2px solid CanvasText;
@@ -742,17 +686,15 @@ export class DatePicker extends LitElement {
       box-shadow: inset 0 0 0 4px Canvas;
     }
 
-    /* System colors, like Canvas above: they follow light/dark without a palette */
     .day[aria-selected='true'] {
-      background: Highlight;
-      color: HighlightText;
+      background: var(--date-picker-accent, Highlight);
+      color: var(--date-picker-accent-text, HighlightText);
     }
 
     .day[aria-current='date'] {
       font-weight: bold;
     }
 
-    /* Read by screen readers, invisible on screen */
     .sr-only {
       position: absolute;
       width: 1px;

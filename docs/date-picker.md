@@ -3,6 +3,7 @@
 ## Table of Contents
 
 - [API](#api)
+  - [Styling](#styling)
 - [Rules](#rules)
 - [How it works](#how-it-works)
   - [State](#state)
@@ -32,7 +33,7 @@ picker.focus();                                 // focuses the input
 | Member | Kind | Meaning |
 |---|---|---|
 | `selectedDate` | property, string | The committed value: a valid `MM/DD/YYYY` or `''` |
-| `isFieldValid` | property, boolean | `true` when the input holds a real date; `false` when empty or invalid |
+| `isFieldValid` | read-only property, boolean | `true` when the input holds a real date; `false` when empty or invalid. Updates as you type |
 | `label` | property, string | Visible label above the field, which is also its accessible name. Defaults to `Date` |
 | `name` | property/attribute | Form field name. The form submits `selectedDate` under it |
 | `required` | property/attribute | Empty is invalid: blocks form submission and says "Enter a date." on blur |
@@ -42,13 +43,37 @@ picker.focus();                                 // focuses the input
 | `focus()` | method | Focuses the input (`delegatesFocus`) |
 | `change` | event | Fires when `selectedDate` changes. `event.detail.value` is the new value. Bubbles out of the shadow root |
 
-| `--date-picker-error-color` | CSS custom property | Error text and invalid-outline color. Defaults to `#b3261e` (light) / `#f2b8b5` (dark), following the OS theme. Set it if your page's background doesn't match the OS theme |
-
 The HTML attribute is `selecteddate`, all lowercase, because attributes are case-insensitive. Setting the property from JS is the usual route.
+
+### Styling
+
+Page CSS can't reach inside the component, so set these on the `date-picker` element instead. Anything you don't set keeps the default look.
+
+```css
+date-picker {
+  --date-picker-accent: #6200ee;
+  --date-picker-radius: 8px;
+}
+```
+
+| Custom property | Styles | Default |
+|---|---|---|
+| `--date-picker-font-size` | Calendar text, including the month and year dropdowns | `1rem` |
+| `--date-picker-background` | Calendar background | `Canvas` |
+| `--date-picker-text-color` | Calendar text color | `CanvasText` |
+| `--date-picker-border-color` | Calendar and cell borders | the text color |
+| `--date-picker-radius` | Calendar corners | `0` |
+| `--date-picker-accent` | Selected day background | `Highlight` |
+| `--date-picker-accent-text` | Selected day text | `HighlightText` |
+| `--date-picker-error-color` | Error text and invalid-outline color. Set it if your page's background doesn't match the OS theme | `#b3261e` (light) / `#f2b8b5` (dark), following the OS theme |
+
+The text field uses the page's font. Set `font-family` or `font-size` on the `date-picker` element to change it.
+
+The default colors switch with light and dark mode on their own. A color you set doesn't switch, so set it again inside a `prefers-color-scheme` media query if you need it to. If you set the colors, checking their contrast is up to you. The focus ring can't be themed (see [Decisions](#decisions)).
 
 ## Rules
 
-1. **`selectedDate` is always valid or empty.** Invalid typing never reaches it. Anything that reads the value can trust it.
+1. **`selectedDate` is always valid or empty.** Invalid typing never reaches it, and neither does an invalid value set from outside. Anything that reads the value can trust it.
 2. **One way in.** Every change to the value goes through `_commit`, so `change` fires once, and only when the value really changes.
 3. **The view is not the value.** `_viewYear` and `_viewMonth` are what the calendar shows. Browsing to March doesn't change the selected date.
 4. **The calendar mirrors the field.** The highlighted day is whatever the input's text parses to, not `selectedDate`. If the text is partial or invalid, nothing is highlighted, so the calendar never shows a different date than the field.
@@ -63,7 +88,7 @@ The HTML attribute is `selecteddate`, all lowercase, because attributes are case
 | Field | Public | Holds |
 |---|---|---|
 | `selectedDate` | yes | Committed value |
-| `isFieldValid` | yes | Whether the input text is a real date |
+| `isFieldValid` | yes, read-only | Whether the input text is a real date. Worked out from `_text`, never stored |
 | `_text` | no | What the input shows. Differs from `selectedDate` while the text is invalid |
 | `_shownProblem` | no | What's wrong with the field, shown under it. Set on blur or Enter, not on every keystroke |
 | `_formDisabled` | no | Set by a disabled `<fieldset>` or form, separately from `disabled` |
@@ -72,7 +97,7 @@ The HTML attribute is `selecteddate`, all lowercase, because attributes are case
 | `_isOpen` | no | Calendar shown |
 | `_popper` | no | The live Popper instance, or `null` |
 
-When a page sets `selectedDate` from outside, `willUpdate` syncs `_text` and the view to it. Opening the calendar always starts on the field's date, or today if the field is empty or invalid. Browsing to another month and closing doesn't carry over to the next open.
+When a page sets `selectedDate` from outside, `willUpdate` syncs `_text` and the view to it. A loose date (`4/3/2023`) is stored as `04/03/2023`. Anything that isn't a date stays in the field so it can be fixed, but `selectedDate` becomes `''`. Neither fires `change`, because the page made the change itself. Opening the calendar always starts on the field's date, or today if the field is empty or invalid. Browsing to another month and closing doesn't carry over to the next open.
 
 ### Typing a date
 
@@ -96,6 +121,7 @@ Typing and committing are separate steps.
 |---|---|
 | `soon`, `2023-04-03` | Enter the date as MM/DD/YYYY, like 04/03/2023. |
 | `4/3/23` | Use a four-digit year, like 2023. |
+| `01/01/0000` | The year must be from 1 to 9999. |
 | `13/01/2024` | The month must be from 1 to 12. |
 | `02/29/2023` | February 2023 has 28 days. |
 | (empty, required) | Enter a date. |
@@ -112,7 +138,7 @@ Clicking a day, or pressing Enter or Space on it, builds the value with `formatD
 
 ```text
 open  -> _isOpen = true, listen for document pointerdown -> await updateComplete
-      -> calendar exists -> createPopper -> forceUpdate -> focus the grid's tab stop
+      -> calendar exists -> showPopover -> createPopper -> forceUpdate -> focus the grid's tab stop
 close -> popper.destroy(), stop listening -> _isOpen = false -> Lit removes the calendar
          (button click, Escape, picking a day, pointerdown outside, focus leaving the component,
           removed from the page)
@@ -123,6 +149,7 @@ close -> popper.destroy(), stop listening -> _isOpen = false -> Lit removes the 
 - **Destroy on every close path.** Each instance listens for scroll and resize. Skipping `destroy()` leaks those listeners, one set per open.
 - **The document listener follows the same rule.** The outside-click listener is added on open and removed on every close, for the same reason Popper is destroyed.
 - **Position before focusing.** Popper places the calendar at a temporary spot and calculates the real position asynchronously. Calling `.focus()` in between scrolls the page to the temporary spot, and then the calendar jumps. `forceUpdate()` positions it synchronously, so focus lands where the calendar really is.
+- **The calendar is a popover in the top layer.** `popover="manual"` plus `showPopover()` lifts it above everything on the page, so an `overflow: hidden` parent can't clip it and no `z-index` can cover it. "Manual" means no built-in light dismiss or Escape handling; the picker already does its own. Where the popover API is missing, it renders in normal flow like before.
 - **Popper failing isn't fatal.** If `createPopper` throws, the error is logged and the calendar still shows, unpositioned, below the input.
 
 ### Keyboard and focus
@@ -144,7 +171,7 @@ Why non-modal: the calendar follows what you type, so the field has to stay usab
 | Field or button | Down / Alt+Down | Open the calendar and focus the grid, or move into it if it's already open |
 | Field or button | Escape | Close the calendar; focus stays where it is |
 
-All grid moves can cross into another month or year. The dropdowns and heading follow. Moves stop at years 0 and 9999, the range `MM/DD/YYYY` can write.
+All grid moves can cross into another month or year. The dropdowns and heading follow. Moves stop at years 1 and 9999. `MM/DD/YYYY` can't write past 9999, and year 0 is 1 BC, which `Intl` calls year 1.
 
 **Roving tabindex.** Only one cell has `tabindex="0"`: the focus day. Every other cell has `-1`. Tab enters the grid at one cell, and the arrow keys move within it. Without this, Tab would stop on all 30 or so days.
 
@@ -168,7 +195,7 @@ All grid moves can cross into another month or year. The dropdowns and heading f
 
 The element is **form-associated**: it uses `ElementInternals` to take part in a `<form>` like a native input. A shadow-root input can't do that by itself. See [Pitfalls: forms and shadow DOM](pitfalls.md#forms-and-shadow-dom).
 
-- **Value:** `setFormValue(selectedDate)` after every render, so the form always submits what's committed
+- **Value:** `setFormValue(selectedDate)` after every render, so the form always submits what's committed. If the field holds text that isn't a date, it submits `''` instead, like a native date input. Otherwise `novalidate` or `form.submit()` would send the last valid date while the field shows something else
 - **Validity:** follows what's *typed*, not just what's committed. Typing `02/30/2024` and clicking Submit is blocked, even before blur. Empty and `required` gives `valueMissing`; anything else invalid gives `badInput`. The input is the anchor, so the browser's validation bubble points at it
 - **Enter submits.** An input inside a shadow root doesn't trigger the outer form's implicit submission, so Enter commits the text, updates validity, and calls `form.requestSubmit()`. `requestSubmit` (not `submit`) runs validation and fires `submit` events, like a native Enter
 - **Reset:** `formResetCallback` restores the `selecteddate` *attribute*. The attribute is the default value and the property is the current value, the same split as `value` on `<input>`. Reset doesn't fire `change`, which matches native inputs
@@ -196,6 +223,9 @@ Choices that might look odd, and why we made them:
 - **Sizes that shrink.** The calendar is `min(400px, 100vw - 16px)` wide, and cells are `clamp(2.75rem, 12vw, 100px)` tall. At a 320px-wide viewport (400% zoom) it fits without scrolling sideways (WCAG 1.4.10). Cells never shrink below a comfortable touch target.
 - **A minimum height on the input.** The calendar button is as tall as the input, and `min-height: 2rem` keeps it above the 24×24 minimum target size (WCAG 2.5.8).
 - **Error colors from the OS theme, plus an override.** `red` measured 4.0:1 on white and 3.9:1 on the demo's dark background, below the 4.5:1 minimum (WCAG 1.4.3). The new colors are 6.5:1 and 9.1:1. The error text sits on the host page's background, which the component can't know, so `--date-picker-error-color` lets the page fix a mismatch.
+- **Calendar text in `rem`, not `px`.** It was `16px`, which ignored both the page and the reader's browser font size (WCAG 1.4.4). `1rem` looks the same in a default browser.
+- **`font: inherit` on the input and the dropdowns.** Browsers give form controls their own small font (13.33px) instead of the page's, so the field didn't match its label and hint, and the month and year dropdowns ignored `--date-picker-font-size`.
+- **Theming through custom properties, and none for the focus ring.** Custom properties are the only page CSS that crosses the shadow boundary, and each one defaults to today's look. The two-tone focus ring stays in system colors, because a themed ring could end up the same color as the day behind it.
 - **A visible label rendered inside the component.** IDs don't cross shadow roots, so a `<label for="x">` on the page can never point at the input inside. An earlier version used `aria-label` from the `label` property. That named the input, but its default "Date" rarely matched the visible text a page put next to it, which fails WCAG 2.5.3 Label in Name for voice-control users ("click Start date"). Rendering the label inside the component means the visible text and the spoken name are the same string. It's not a `<slot>`, because browsers disagree on how `aria-labelledby` handles slotted text. See [Pitfalls: labels and shadow DOM](pitfalls.md#labels-and-shadow-dom).
 - **`delegatesFocus: true`.** `picker.focus()` focuses the input. Without it, a page's "jump to the first error" link or its own focus management does nothing.
 - **The button says the date.** With a date set, it's "Change date, November 3, 2026", so a screen-reader user who tabs past the field still hears the value (APG).
@@ -217,14 +247,14 @@ pnpm build       # tsc declarations + vite library build
 - [date-utils.spec.ts](../src/date-utils.spec.ts): leap years (including 1900/2000), rollover rejections, grid padding, year range errors, day and month stepping across DST
 - [date-picker.spec.ts](../src/date-picker.spec.ts): one test for each bug that's been fixed, the Popper lifecycle using a mocked `@popperjs/core` that counts `createPopper` and `destroy` calls, every key in the table above, focus placement, ARIA attributes, error messages, locale and strings
 - [strings.spec.ts](../src/strings.spec.ts): string overrides merge without losing defaults
-- [e2e/date-picker.e2e.ts](../e2e/date-picker.e2e.ts): Playwright in real Chromium, for what jsdom can't do: axe WCAG 2.2 AA scans (closed, open, error showing, light and dark), the focus ring on the selected day, 320px reflow, the 24×24 button, no page jump on open, `delegatesFocus`, label click, and form submit, required, reset, and disabled `<fieldset>`. [e2e/fixture.html](../e2e/fixture.html) is the test page
+- [e2e/date-picker.e2e.ts](../e2e/date-picker.e2e.ts): Playwright in real Chromium, for what jsdom can't do: axe WCAG 2.2 AA scans (closed, open, error showing, light and dark), the focus ring on the selected day, styling custom properties and their defaults, 320px reflow, escaping an `overflow: hidden` parent, the 24×24 button, no page jump on open, `delegatesFocus`, label click, and form submit, required, reset, and disabled `<fieldset>`. [e2e/fixture.html](../e2e/fixture.html) is the test page
 
 ```sh
 pnpm exec playwright install chromium   # once, downloads the browser
 pnpm test:e2e                           # starts the Vite dev server itself
 ```
 
-Every accessibility fix has been checked by breaking it on purpose and watching a test fail. Removing `forceUpdate` makes the page jump from y=1830 to y=64 on open. The old `red` error color fails axe's `color-contrast` rule. The old single-color focus ring fails the focus-ring test.
+Every accessibility fix has been checked by breaking it on purpose and watching a test fail. Removing `forceUpdate` makes the page jump from y=1830 to y=64 on open. The old `red` error color fails axe's `color-contrast` rule. The old single-color focus ring fails the focus-ring test. The old `16px` calendar text fails the rem test. Without `font: inherit`, the input stays at 13.33px and fails the font test.
 
 Things to know:
 

@@ -94,6 +94,8 @@ Build these before the adapters, so every later phase can be proven in every fra
 
 Shadow DOM blocks page CSS. Without hooks, every consumer forks the component to change one color.
 
+*Custom properties done 2026-11-25* (see [Styling](docs/date-picker.md#styling)). The `::part()` names are what's left.
+
 - `part="…"` on the label, input, button, hint, error, dialog, header, grid, and day cells. Day cells also get state parts (`day selected`, `day today`, `day outside`).
 - Custom properties for the things people change first: accent color, border color, radius, font, and calendar background. Each one defaults to what the component looks like today.
 - A "Styling" section in [date-picker.md](docs/date-picker.md) listing every part and property. Part names are public API once published.

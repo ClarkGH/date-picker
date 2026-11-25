@@ -55,7 +55,7 @@ Here: we don't write the rule. `new Date(year, month, 0)` is the last day of the
 
 ## Two-digit years
 
-`new Date(50, 0, 1)` is January 1st **1950**. The constructor treats years 0-99 as 1900-1999, a leftover from the Y2K era. Year 0 is a leap year and 1900 isn't, so `02/29/0000` would be wrongly rejected.
+`new Date(50, 0, 1)` is January 1st **1950**. The constructor treats years 0-99 as 1900-1999, a leftover from the Y2K era. January 1st, 50 was a Saturday, but 1950's was a Sunday, so the calendar for `01/01/0050` would start every week one day off.
 
 Here: `localDate` builds dates with `setFullYear`, which does no such mapping.
 
@@ -107,7 +107,7 @@ Here: see [Date Picker: Popper lifecycle](date-picker.md#popper-lifecycle).
 
 A floating calendar needs an opaque background, a `z-index`, and an ancestor that doesn't clip it. An `overflow: hidden` parent will cut it off. A transparent calendar over page content is unreadable.
 
-Here: `background: Canvas` plus `z-index`. Clipping by a host page's `overflow: hidden` is still possible. Popper's `strategy: 'fixed'` is the escape hatch if that becomes a problem.
+Here: `background: Canvas`, and the calendar is a popover in the browser's top layer, so no parent can clip or cover it. Popper's `strategy: 'fixed'` looked like the fix, but a fixed calendar taller than the space below the field opens off-screen, and the page can't scroll to it.
 
 ## Validation that punishes
 

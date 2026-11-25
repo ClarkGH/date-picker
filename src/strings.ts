@@ -1,7 +1,4 @@
-/**
- * Every piece of UI text in the picker, so a page can translate or reword it.
- * Month and weekday names aren't here: they come from `Intl` using the `locale` property.
- */
+/** All UI text, so a page can translate or reword it. Month and weekday names come from `Intl`. */
 export interface DatePickerStrings {
   /** Visible format hint under the field. */
   hint: string;
@@ -16,6 +13,7 @@ export interface DatePickerStrings {
   errors: {
     format: string;
     twoDigitYear: string;
+    year: string;
     month: string;
     /** e.g. "February 2023 has 28 days." */
     day: (monthName: string, year: number, days: number) => string;
@@ -38,13 +36,14 @@ export const DEFAULT_STRINGS: DatePickerStrings = {
   errors: {
     format: 'Enter the date as MM/DD/YYYY, like 04/03/2023.',
     twoDigitYear: 'Use a four-digit year, like 2023.',
+    year: 'The year must be from 1 to 9999.',
     month: 'The month must be from 1 to 12.',
     day: (monthName, year, days) => `${monthName} ${year} has ${days} days.`,
     required: 'Enter a date.',
   },
 };
 
-/** Overrides on top of the defaults. `errors` merges one level deep so one message can change alone. */
+/** `errors` merges one level deep, so one message can change alone. */
 export function resolveStrings(overrides: DatePickerStringOverrides = {}): DatePickerStrings {
   return {
     ...DEFAULT_STRINGS,

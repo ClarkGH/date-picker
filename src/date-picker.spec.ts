@@ -120,6 +120,19 @@ describe('typing a date', () => {
     expect(q(el, '.error').textContent).toBe('');
   });
 
+  it('isFieldValid is read-only and follows the text as you type', async () => {
+    const el = await mount();
+    expect(() => {
+      (el as unknown as { isFieldValid: boolean }).isFieldValid = true;
+    }).toThrow(TypeError);
+    expect(el.isFieldValid).toBe(false);
+
+    await typeWithoutBlur(el, '04/03/2023');
+    expect(el.isFieldValid).toBe(true);
+    await typeWithoutBlur(el, '04/03/20');
+    expect(el.isFieldValid).toBe(false);
+  });
+
   it('clearing the field clears the value without an error', async () => {
     const el = await mount({ selectedDate: '01/01/2024' });
     await typeAndBlur(el, '   ');
@@ -127,6 +140,47 @@ describe('typing a date', () => {
     expect(el.selectedDate).toBe('');
     expect(el.isFieldValid).toBe(false);
     expect(q(el, '.error').textContent).toBe('');
+  });
+});
+
+describe('a value set from outside', () => {
+  it('stores a loose date as MM/DD/YYYY, without a change event', async () => {
+    const el = await mount();
+    const onChange = vi.fn();
+    el.addEventListener('change', onChange);
+
+    el.selectedDate = '4/3/2023';
+    await el.updateComplete;
+
+    expect(el.selectedDate).toBe('04/03/2023');
+    expect(q<HTMLInputElement>(el, 'input').value).toBe('04/03/2023');
+    expect(el.isFieldValid).toBe(true);
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('never keeps a value that is not a date, but shows it so it can be fixed', async () => {
+    const el = await mount({ selectedDate: '01/01/2024' });
+    const onChange = vi.fn();
+    el.addEventListener('change', onChange);
+
+    el.selectedDate = 'not a date';
+    await el.updateComplete;
+
+    expect(el.selectedDate).toBe('');
+    expect(q<HTMLInputElement>(el, 'input').value).toBe('not a date');
+    expect(el.isFieldValid).toBe(false);
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('applies the same rules to the selecteddate attribute', async () => {
+    const el = await mount();
+    el.setAttribute('selecteddate', '02/30/2024');
+    await el.updateComplete;
+    expect(el.selectedDate).toBe('');
+
+    el.setAttribute('selecteddate', '2.29.2024');
+    await el.updateComplete;
+    expect(el.selectedDate).toBe('02/29/2024');
   });
 });
 
@@ -321,8 +375,6 @@ describe('the selected day', () => {
   });
 });
 
-// ---- keyboard ----
-
 function focused(el: Picker): Element | null {
   return el.shadowRoot!.activeElement;
 }
@@ -462,13 +514,26 @@ describe('keyboard: moving in the grid', () => {
     expect(focusedDate(el)).toBe('12/31/2024');
   });
 
-  it('stops at year 0 instead of going negative', async () => {
-    const el = await mount({ selectedDate: '01/01/0000' });
+  it('stops at year 1, since year 0 is 1 BC', async () => {
+    const el = await mount({ selectedDate: '01/01/0001' });
     await openCalendar(el);
 
     await press(el, 'ArrowLeft');
 
-    expect(focusedDate(el)).toBe('01/01/0000');
+    expect(focusedDate(el)).toBe('01/01/0001');
+  });
+
+  it('rejects typed year 0 with its own message', async () => {
+    const el = await mount();
+    await typeAndBlur(el, '01/01/0000');
+
+    expect(el.selectedDate).toBe('');
+    expect(q(el, '.error').textContent).toBe('The year must be from 1 to 9999.');
+  });
+
+  it('names the year it shows: year 1, not year 0', async () => {
+    const el = await mount({ selectedDate: '01/01/0001' });
+    expect(q(el, '.toggle').getAttribute('aria-label')).toBe('Change date, January 1, 1');
   });
 
   it('moving focus does not change the value', async () => {
@@ -805,6 +870,25 @@ describe('locale and strings', () => {
 
     expect(selects(el)[0].selectedOptions[0].textContent).toBe('November');
     expect(warn).toHaveBeenCalledTimes(1);
+  });
+
+  it('checks the locale once per change, not on every render', async () => {
+    const check = vi.spyOn(Intl.DateTimeFormat, 'supportedLocalesOf');
+    try {
+      const el = await mount();
+      el.locale = 'fr-FR';
+      await openCalendar(el);
+      await press(el, 'ArrowRight');
+      await typeWithoutBlur(el, '11/05/2026');
+      // An empty, closed picker never reads the locale, so en-US was never checked
+      expect(check.mock.calls.map(([tag]) => tag)).toEqual(['fr-FR']);
+
+      el.locale = 'de-DE';
+      await el.updateComplete;
+      expect(check.mock.calls.map(([tag]) => tag)).toEqual(['fr-FR', 'de-DE']);
+    } finally {
+      check.mockRestore();
+    }
   });
 
   it('uses overridden strings, including a single error', async () => {

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   addDays, addMonths, buildMonthGrid, dayOfWeek, daysInMonth, formatDate, formatLongDate, isInRange,
   isSameDate, monthNames, parseDate, validateDate, weekdayNames, yearRange,
@@ -151,8 +151,8 @@ describe('dayOfWeek / isSameDate / isInRange', () => {
   });
 
   it('stays inside four-digit years', () => {
-    expect(isInRange({ year: 0, month: 1, day: 1 })).toBe(true);
-    expect(isInRange({ year: -1, month: 12, day: 31 })).toBe(false);
+    expect(isInRange({ year: 1, month: 1, day: 1 })).toBe(true);
+    expect(isInRange({ year: 0, month: 12, day: 31 })).toBe(false);
     expect(isInRange({ year: 10000, month: 1, day: 1 })).toBe(false);
   });
 });
@@ -165,6 +165,7 @@ describe('validateDate', () => {
     ['04-03-23', 'two-digit-year'],
     ['13/01/2024', 'month'],
     ['00/01/2024', 'month'],
+    ['01/01/0000', 'year'],
   ])('%j is a %s problem', (text, problem) => {
     expect(validateDate(text)).toEqual({ ok: false, problem });
   });
@@ -201,6 +202,18 @@ describe('locale names', () => {
   it('writes a long date, including years below 100', () => {
     expect(formatLongDate({ year: 2026, month: 11, day: 3 }, 'en-US')).toBe('November 3, 2026');
     expect(formatLongDate({ year: 50, month: 1, day: 1 }, 'en-US')).toContain('50');
+  });
+
+  it('builds the long-date formatter once per locale', () => {
+    const spy = vi.spyOn(Intl, 'DateTimeFormat');
+    try {
+      // A locale no other test uses, so the cache starts empty for it
+      expect(formatLongDate({ year: 2026, month: 11, day: 3 }, 'en-GB')).toBe('3 November 2026');
+      expect(formatLongDate({ year: 2026, month: 11, day: 4 }, 'en-GB')).toBe('4 November 2026');
+      expect(spy).toHaveBeenCalledTimes(1);
+    } finally {
+      spy.mockRestore();
+    }
   });
 });
 

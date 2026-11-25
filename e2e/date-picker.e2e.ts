@@ -64,6 +64,91 @@ for (const colorScheme of ['light', 'dark'] as const) {
   });
 }
 
+test.describe('styling', () => {
+  /** Opens a picker and reads the calendar's and the selected day's computed styles. */
+  async function openAndRead(page: Page, root: ReturnType<typeof picker>) {
+    await root.locator('input').press('ArrowDown');
+    const cell = root.locator('td[aria-selected="true"]');
+    await expect(cell).toBeFocused();
+    const calendar = await root.locator('.date-picker').evaluate((el) => {
+      const s = getComputedStyle(el);
+      return { fontSize: s.fontSize, background: s.backgroundColor, color: s.color, border: s.borderTopColor, radius: s.borderTopLeftRadius };
+    });
+    const day = await cell.evaluate((el) => {
+      const s = getComputedStyle(el);
+      return { background: s.backgroundColor, color: s.color, border: s.borderTopColor };
+    });
+    return { calendar, day };
+  }
+
+  /** What a system color like `Highlight` resolves to on this page. */
+  const systemColor = (page: Page, keyword: string) =>
+    page.evaluate((k) => {
+      const probe = document.body.appendChild(document.createElement('div'));
+      probe.style.color = k;
+      const value = getComputedStyle(probe).color;
+      probe.remove();
+      return value;
+    }, keyword);
+
+  test('with no custom properties set, it looks the same as before', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('date-picker input').fill('11/03/2026');
+    const { calendar, day } = await openAndRead(page, page.locator('date-picker'));
+
+    expect(calendar.fontSize).toBe('16px');
+    expect(calendar.background).toBe(await systemColor(page, 'Canvas'));
+    expect(calendar.color).toBe(await systemColor(page, 'CanvasText'));
+    expect(calendar.border).toBe(calendar.color); // currentColor
+    expect(calendar.radius).toBe('0px');
+    expect(day.background).toBe(await systemColor(page, 'Highlight'));
+    expect(day.color).toBe(await systemColor(page, 'HighlightText'));
+  });
+
+  test('the calendar follows the root font size (rem, not px)', async ({ page }) => {
+    await page.goto('/');
+    await page.evaluate(() => (document.documentElement.style.fontSize = '24px'));
+    await page.locator('date-picker input').press('ArrowDown');
+    await expect(page.locator('date-picker .date-picker')).toHaveCSS('font-size', '24px');
+  });
+
+  test('the text field uses the font set on the element', async ({ page }) => {
+    await page.goto('/');
+    const host = page.locator('date-picker');
+    await host.evaluate((el: HTMLElement) => {
+      el.style.fontFamily = 'monospace';
+      el.style.fontSize = '22px';
+    });
+    const input = host.locator('input');
+    await expect(input).toHaveCSS('font-size', '22px');
+    await expect(input).toHaveCSS('font-family', 'monospace');
+  });
+
+  test('every custom property reaches the calendar', async ({ page }) => {
+    await page.goto('/e2e/fixture.html');
+    const { calendar, day } = await openAndRead(page, picker(page, 'themed'));
+
+    expect(calendar).toEqual({
+      fontSize: '20px',
+      background: 'rgb(255, 250, 240)',
+      color: 'rgb(20, 20, 20)',
+      border: 'rgb(120, 120, 120)',
+      radius: '12px',
+    });
+    expect(day).toEqual({ background: 'rgb(98, 0, 238)', color: 'rgb(255, 255, 255)', border: 'rgb(120, 120, 120)' });
+    await expect(picker(page, 'themed').locator('select#month')).toHaveCSS('font-size', '20px');
+    await expect(picker(page, 'themed').locator('select#year')).toHaveCSS('font-size', '20px');
+  });
+
+  test('the focus ring ignores the theme', async ({ page }) => {
+    await page.goto('/e2e/fixture.html');
+    await picker(page, 'themed').locator('input').press('ArrowDown');
+    const cell = picker(page, 'themed').locator('td[aria-selected="true"]');
+    await expect(cell).toBeFocused();
+    expect(await cell.evaluate((el) => getComputedStyle(el).outlineColor)).toBe(await systemColor(page, 'CanvasText'));
+  });
+});
+
 test.describe('layout', () => {
   test('fits a 320px viewport (400% zoom) without sideways scrolling', async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 640 });
@@ -82,6 +167,23 @@ test.describe('layout', () => {
     expect(box!.x + box!.width).toBeLessThanOrEqual(320);
   });
 
+  test('the calendar escapes an overflow: hidden parent and stacks above a z-index: 100 sibling', async ({ page }) => {
+    await page.goto('/e2e/fixture.html');
+    const input = picker(page, 'clipped').locator('input');
+    await input.scrollIntoViewIfNeeded();
+    await input.press('ArrowDown');
+    await expect(picker(page, 'clipped').locator('td[tabindex="0"]')).toBeFocused();
+
+    const calendar = (await picker(page, 'clipped').locator('.date-picker').boundingBox())!;
+    const clipper = (await page.locator('#clipper').boundingBox())!;
+    // A point in the calendar, below the clipping parent and over the cover
+    const x = calendar.x + calendar.width / 2;
+    const y = Math.min(clipper.y + clipper.height + 40, calendar.y + calendar.height - 10);
+    expect(y).toBeGreaterThan(clipper.y + clipper.height);
+    const hit = await page.evaluate(([px, py]) => document.elementFromPoint(px, py)?.id, [x, y]);
+    expect(hit).toBe('clipped'); // the host, since shadow DOM retargets
+  });
+
   test('the calendar button is at least 24x24 (WCAG 2.5.8)', async ({ page }) => {
     await page.goto('/');
     const box = await page.locator('date-picker .toggle').boundingBox();
@@ -98,9 +200,8 @@ test.describe('layout', () => {
   });
 
   test('opening positions the calendar before focusing it (no jump toward the page top)', async ({ page }) => {
-    // Before Popper positions it, the calendar sits at a temporary spot near the top of the page.
-    // Focusing it there scrolled the page up to it. The calendar is taller than this viewport, so
-    // some scrolling down to show the focused day is expected; scrolling up is the bug
+    // Focusing before Popper positions it scrolled the page up to a temporary spot.
+    // Scrolling down to the focused day is fine (the calendar is taller than the viewport)
     await page.goto('/e2e/fixture.html');
     const input = picker(page, 'far').locator('input');
     await input.scrollIntoViewIfNeeded();
@@ -179,6 +280,32 @@ test.describe('forms', () => {
     await page.locator('button[type="submit"]').click();
 
     expect(await page.evaluate(() => (window as any).submitted)).toBeNull();
+  });
+
+  test('invalid text submits nothing, not the last valid date', async ({ page }) => {
+    // What novalidate, form.submit(), or reading FormData would send
+    await page.goto('/e2e/fixture.html');
+    const input = picker(page).locator('input');
+    await input.fill('04/03/2023');
+    await input.blur();
+    await input.fill('02/30/2024');
+    await input.blur();
+
+    expect(await page.evaluate(() => new FormData(document.getElementById('form') as HTMLFormElement).get('when'))).toBe('');
+  });
+
+  test('a value set from outside submits as MM/DD/YYYY, and a non-date submits nothing', async ({ page }) => {
+    await page.goto('/e2e/fixture.html');
+    const formValue = (value: string) =>
+      page.evaluate(async (v) => {
+        const el = document.getElementById('plain') as any;
+        el.selectedDate = v;
+        await el.updateComplete;
+        return new FormData(document.getElementById('form') as HTMLFormElement).get('when');
+      }, value);
+
+    expect(await formValue('4/3/2023')).toBe('04/03/2023');
+    expect(await formValue('not a date')).toBe('');
   });
 
   test('form.reset() restores the default value', async ({ page }) => {

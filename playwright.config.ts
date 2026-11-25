@@ -1,9 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 
-/**
- * Browser tests for what jsdom can't do: layout, color contrast, focus rings, form association,
- * delegatesFocus. Runs against the Vite dev server. Unit and component specs stay in Vitest.
- */
+/** Browser tests for what jsdom can't do: layout, color, focus rings, forms, delegatesFocus. */
 export default defineConfig({
   testDir: 'e2e',
   testMatch: '**/*.e2e.ts',

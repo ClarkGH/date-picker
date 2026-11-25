@@ -21,6 +21,24 @@
         </fieldset>
         <button type="submit">Submit</button>
       </form>
+      <date-picker
+        id="themed"
+        label="Themed date"
+        selectedDate="11/03/2026"
+        style="
+          --date-picker-font-size: 20px;
+          --date-picker-background: rgb(255, 250, 240);
+          --date-picker-text-color: rgb(20, 20, 20);
+          --date-picker-border-color: rgb(120, 120, 120);
+          --date-picker-radius: 12px;
+          --date-picker-accent: rgb(98, 0, 238);
+          --date-picker-accent-text: rgb(255, 255, 255);
+        "
+      ></date-picker>
+      <div id="clipper" style="overflow: hidden; height: 120px; position: relative; z-index: 0">
+        <date-picker id="clipped" label="Clipped date"></date-picker>
+      </div>
+      <div id="cover" style="position: relative; z-index: 100; height: 600px; background: gray" aria-hidden="true"></div>
       <div style="height: 1500px" aria-hidden="true"></div>
       <date-picker id="far" label="Far date"></date-picker>
       <div style="height: 1500px" aria-hidden="true"></div>
