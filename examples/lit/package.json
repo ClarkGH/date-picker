@@ -1,0 +1,15 @@
+{
+  "name": "example-lit",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build"
+  },
+  "dependencies": {
+    "consistent-date-picker": "file:../.pack/consistent-date-picker.tgz",
+    "lit": "^3.3.3"
+  },
+  "devDependencies": {
+    "vite": "^8.4.0"
+  }
+}

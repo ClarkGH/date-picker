@@ -13,7 +13,7 @@ Each phase ends with a check: something you can run that proves the phase is don
 - [x] Phase 0: decisions (2026-11-26)
 - [x] Phase 1: toolchain upgrade (2026-11-26). Done before Phase 0 finished, by Clark's call: nothing in it depends on the names. Lit 3.3, TypeScript 6.0, Vite 8, Vitest 5
 - [x] Phase 2: package shape (2026-11-26)
-- [ ] Phase 3: consumer apps (Lit, Vue, React 19)
+- [x] Phase 3: consumer apps (2026-11-27)
 - [ ] Phase 4: Custom Elements Manifest and types
 - [ ] Phase 5: styling API
 - [ ] Phase 6: React adapter
@@ -33,7 +33,7 @@ Each phase ends with a check: something you can run that proves the phase is don
 - [x] **Package name.** *Decided 2026-11-26: `consistent-date-picker`, unscoped (free on npm). Clark's npm account is `clarkusmalarkus`.* Recommended: a scoped name (`@<npm-user>/date-picker`), which can't clash with anyone else's. Check any unscoped name with `pnpm view <name>`.
 - [x] **Tag name.** *Decided 2026-11-26: `consistent-date-picker`, the same as the package. The CSS custom properties follow it: `--consistent-date-picker-*`.* `date-picker` is generic, and defining the same custom element name twice throws. Two libraries using that name, or two copies of this one, will crash. Recommended: a short prefix of your own (`<prefix>-date-picker`).
 - [x] **Registration.** *Decided 2026-11-26: (b) plus a guard.* (a) Importing the package registers the tag, like today. (b) The main entry exports the class without registering it, and `/define` registers it. Recommended: **(b) plus a guard** (`if (!customElements.get(tag))`), so an app can also register the class under its own tag name.
-- [x] **Event name.** *Decided 2026-11-26: keep `change` for now, and settle it with the React 19 app in Phase 3.* Keep `change`, or rename it to `date-change`. `change` reads naturally in Vue and Lit, but React treats `onChange` specially, and it's unclear how React 19 maps it onto a custom element. [VERIFY] Phase 3's React 19 app settles this. Decide here, or wait until Phase 3 and decide then.
+- [x] **Event name.** *Decided 2026-11-26: keep `change` for now, and settle it with the React 19 app in Phase 3. Settled 2026-11-27: keep `change` (see Phase 3).* Keep `change`, or rename it to `date-change`. `change` reads naturally in Vue and Lit, but React treats `onChange` specially, and it's unclear how React 19 maps it onto a custom element. [VERIFY] Phase 3's React 19 app settles this. Decide here, or wait until Phase 3 and decide then.
 - [x] **Oldest React supported.** *Decided 2026-11-26: React 18, with the `@lit/react` wrapper.* React 19 only (no adapter needed), or React 18 as well (Phase 6 builds an `@lit/react` wrapper). Recommended: support 18. Plenty of apps are still on it, and the wrapper is small.
 - [x] **Vue `v-model`.** *Decided 2026-11-26: docs and a types file first; a wrapper only if needed.* Docs only (`:selectedDate` plus `@change`), or ship a tiny Vue wrapper component that supports `v-model`. Recommended: docs plus a types file first, and the wrapper only if the docs version feels clunky in the example app.
 - [x] **Version.** *Decided 2026-11-26: stay on `0.x` while building (`0.8.0` now), and publish the first release as `1.0.0` in Phase 9.* Publish as `0.x` while the API settles, or go straight to `1.0.0`. Recommended: `0.6.0` first, and `1.0.0` once the example apps have been used for a while.
@@ -81,6 +81,12 @@ Already on the [TBD list](docs/INDEX.md#next-steps). Doing it now means the publ
 **Check:** `pnpm dlx publint` and `pnpm dlx @arethetypeswrong/cli --pack` report no errors. `pnpm pack` contains only `dist/`, `types/`, `README.md`, `LICENSE` and `package.json`. Importing `/define` twice doesn't throw.
 
 ## Phase 3: consumer apps
+
+*Done 2026-11-27.* `pnpm test:consumers` packs the library, installs the tarball fresh into `examples/lit`, `examples/vue` and `examples/react19`, builds each for production, and runs [smoke.e2e.ts](examples/smoke.e2e.ts) against `vite preview`. With `sideEffects: false`, all three fail, so the setup catches production-only bugs. React needed no Vite plugin, since Vite 8 handles JSX. What React 19 does with events:
+- It strips `on` and listens for the rest, case-sensitive: `ondate-change` listens for `date-change`, and `onDateChange` for `DateChange`.
+- `onChange` is the exception. React treats it as its own built-in change handler, so the handler gets React's synthetic event, with no `detail`. It still fires exactly once, and `e.target` is the picker.
+- `onchange`, all lowercase, gets the real `CustomEvent`.
+- **Kept `change`.** It's natural in Lit, Vue and plain JavaScript, and React users read `e.target.selectedDate`. Renaming would make them write `ondate-change`.
 
 Build these before the adapters, so every later phase can be proven in every framework.
 

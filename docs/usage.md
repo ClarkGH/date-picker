@@ -5,6 +5,7 @@
 ## Table of Contents
 
 - [Quick start](#quick-start)
+- [In a framework](#in-a-framework)
 - [Properties](#properties)
 - [What people can type](#what-people-can-type)
 - [Keyboard](#keyboard)
@@ -31,6 +32,35 @@ import 'consistent-date-picker/define'; // registers <consistent-date-picker>
 const picker = document.querySelector('consistent-date-picker');
 picker.addEventListener('change', (e) => console.log(e.detail.value)); // "04/03/2023"
 ```
+
+## In a framework
+
+These are tested on every change in small example apps ([examples/](../examples)).
+
+**Lit:** bind the property, and listen with `@change`.
+
+```js
+html`<consistent-date-picker .selectedDate=${value} @change=${(e) => save(e.detail.value)}></consistent-date-picker>`
+```
+
+**Vue 3:** tell Vue the tag is a custom element, or it warns that it can't find the component:
+
+```js
+// vite.config.js
+vue({ template: { compilerOptions: { isCustomElement: (tag) => tag === 'consistent-date-picker' } } })
+```
+
+```vue
+<consistent-date-picker :selectedDate="value" @change="(e) => (value = e.detail.value)" />
+```
+
+**React 19:** `onChange` works, but React passes its own event object, which has no `detail`. Read the picker instead, like `e.target.value` on an input:
+
+```jsx
+<consistent-date-picker selectedDate={value} onChange={(e) => setValue(e.target.selectedDate)} />
+```
+
+(`onchange`, all lowercase, gets the real event with `e.detail` instead.) React 18 needs a small wrapper, which is coming.
 
 ## Properties
 

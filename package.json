@@ -44,7 +44,8 @@
     "build": "tsc && vite build",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.spec.json",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:consumers": "node scripts/test-consumers.mjs"
   },
   "peerDependencies": {
     "lit": "^3.0.0"

@@ -109,3 +109,8 @@ dist
 
 # Private notes
 docs/tech-debt.md
+
+# Example apps: built and installed fresh by pnpm test:consumers
+examples/.pack
+examples/*/node_modules
+examples/*/dist

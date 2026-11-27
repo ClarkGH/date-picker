@@ -128,6 +128,7 @@ Choices that might look odd, and why.
 | Years 1 to 9999 | `MM/DD/YYYY` can't write past 9999, and year 0 is 1 BC, which `Intl` writes as year 1 |
 | `locale` changes names, not the format | A different format needs a different parser. See [Pitfalls: format ambiguity](pitfalls.md#format-ambiguity) |
 | A bad `locale` warns instead of throwing | `Intl` throws on a malformed tag, which would break the render |
+| The event is `change`, not `date-change` | It's what Lit, Vue and plain JavaScript expect. In React 19, `onChange` still fires once and `e.target.selectedDate` has the value. A renamed event would mean writing `ondate-change` in React |
 
 **Rendering**
 
