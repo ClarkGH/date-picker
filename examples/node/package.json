@@ -1,0 +1,13 @@
+{
+  "name": "example-node",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node check.mjs"
+  },
+  "dependencies": {
+    "consistent-date-picker": "file:../.pack/consistent-date-picker.tgz",
+    "lit": "^3.3.3",
+    "vue": "^3.5.46"
+  }
+}

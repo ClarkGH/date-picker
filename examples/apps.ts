@@ -5,4 +5,5 @@ export const APPS = [
   { name: 'react19', port: 5303 },
   { name: 'react18', port: 5304 },
   { name: 'react19-wrapper', port: 5305 },
+  { name: 'react19-ssr', port: 5306 },
 ] as const;

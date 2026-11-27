@@ -11,6 +11,7 @@
 - [Keyboard](#keyboard)
 - [Forms](#forms)
 - [Styling](#styling)
+- [Server rendering](#server-rendering)
 - [Editor support](#editor-support)
 - [Limits](#limits)
 - [Navigation](#navigation)
@@ -213,6 +214,23 @@ consistent-date-picker::part(day):hover { background: #eee; }
 | `empty` | A blank cell before the 1st or after the last day |
 
 `::part()` styles one element. It can't reach inside a part, so `::part(calendar) td` doesn't work; use `::part(day)`. Pseudo-classes work, like `:hover` and `:focus-visible`. **If you restyle `:focus-visible`, keep a clearly visible ring**, because keyboard users need it to see where they are (WCAG 2.4.7).
+
+## Server rendering
+
+Frameworks that render on the server (Next.js, Nuxt, Astro) can import the package there. It won't crash: Lit's Node build stands in for the browser pieces Node doesn't have. The server sends the tag as plain HTML, and the picker appears once the browser loads its script.
+
+- **Next.js:** import it from a client component (`'use client'`), because the React wrapper uses hooks. No dynamic import is needed. The wrapper's props, like `selectedDate`, arrive right after hydration. With the bare tag, attributes such as `selectedDate="04/03/2023"` are in the server HTML and become the starting value.
+- **Nuxt:** add `isCustomElement` under `vue.compilerOptions` in `nuxt.config`, and import `consistent-date-picker/define` from a plugin.
+- **Astro:** write the tag as plain HTML and import `define` in a `<script>`. Astro bundles that for the browser. `client:only` isn't needed; it's for framework components, not custom elements.
+
+```astro
+<consistent-date-picker name="when" label="Meeting date"></consistent-date-picker>
+<script>
+  import 'consistent-date-picker/define';
+</script>
+```
+
+The picker isn't rendered on the server. Its calendar and field are drawn in the browser, so with JavaScript off there's no picker.
 
 ## Editor support
 

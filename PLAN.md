@@ -18,7 +18,7 @@ Each phase ends with a check: something you can run that proves the phase is don
 - [x] Phase 5: styling API (2026-11-27)
 - [x] Phase 6: React adapter (2026-11-27)
 - [x] Phase 7: Vue polish (2026-11-27)
-- [ ] Phase 8: SSR safety
+- [x] Phase 8: SSR safety (2026-11-27)
 - [ ] Phase 9: docs and release
 
 ## Rules for the whole plan
@@ -148,6 +148,13 @@ Only if Phase 0 picked React 18 support.
 **Check:** a typo in a prop name in `examples/vue` fails `vue-tsc`, and the smoke spec still passes.
 
 ## Phase 8: SSR safety
+
+*Done 2026-11-27.* No code changes needed: Lit's Node build shims `customElements` and `HTMLElement`, so every entry already imports in plain Node, and `/define` registers in the shim. What was added to prove it, and keep it proven:
+- `examples/node`: imports every entry in Node, and Vue's server renderer renders the tag. With a `window` access injected at import time, it fails.
+- `examples/react19-ssr`: renders the wrapper to HTML in Node (`prerender.mjs`), then hydrates it in Chromium. It passes the full smoke test with no hydration warnings, and fails when the server and client HTML differ.
+- Astro trial, in the scratchpad, not the portfolio: a plain tag plus `<script>import '…/define'</script>` builds and works in Chromium. `client:only` doesn't apply to custom elements, so the docs don't use it.
+- Next.js and Nuxt weren't run. Their guidance rests on the Node import, React SSR and hydration, and Vue SSR results above.
+- A wrong turn worth keeping: a jsdom hydration test run from Node lost the wrapper's props. Node had loaded `@lit/react`'s `node` build, which never sets properties. The real-browser test showed the wrapper is fine.
 
 Server renderers (Next.js, Nuxt, Astro) run imports in Node, where `customElements` doesn't exist.
 

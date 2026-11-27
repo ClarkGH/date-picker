@@ -27,7 +27,7 @@ pnpm test:consumers                    # packs the library and tests it in the f
 
 [e2e/fixture.html](../e2e/fixture.html) is the page the browser tests run against.
 
-**The example apps** in [examples/](../examples) install the packed tarball, not the source, so they test what npm would ship. There are five: Lit, Vue, React 19 with the bare tag, and the React wrapper on both React 18 and React 19. They're built for production, because tree-shaking bugs only show up there: with `sideEffects: false`, the bundler drops `/define`, and they fail. [smoke.e2e.ts](../examples/smoke.e2e.ts) runs the same steps in each one, and also fails on any console error or warning. The Vue app is TypeScript and runs `vue-tsc` first. Its [TypeChecks.vue](../examples/vue/src/TypeChecks.vue) holds deliberate mistakes, each marked `@vue-expect-error`, so if the Vue types ever stop catching one, `vue-tsc` fails.
+**The example apps** in [examples/](../examples) install the packed tarball, not the source, so they test what npm would ship. Lit, Vue, React 19 with the bare tag, and the React wrapper on React 18 and React 19. `react19-ssr` server-renders the wrapper in Node, then hydrates that HTML in the browser, like Next.js. A hydration mismatch logs a warning, which fails the smoke test. `node` has no page: it imports every entry in plain Node and server-renders the tag with Vue, so code that touches `window` at import time fails. They're built for production, because tree-shaking bugs only show up there: with `sideEffects: false`, the bundler drops `/define`, and they fail. [smoke.e2e.ts](../examples/smoke.e2e.ts) runs the same steps in each one, and also fails on any console error or warning. The Vue app is TypeScript and runs `vue-tsc` first. Its [TypeChecks.vue](../examples/vue/src/TypeChecks.vue) holds deliberate mistakes, each marked `@vue-expect-error`, so if the Vue types ever stop catching one, `vue-tsc` fails.
 
 **Every fix was checked by breaking it.** Each browser test was run with its fix undone, to watch it fail. For example, removing `forceUpdate` makes the page jump from y=1830 to y=64 on open, and the old `red` error color fails axe's contrast rule.
 
@@ -40,6 +40,7 @@ pnpm test:consumers                    # packs the library and tests it in the f
 | "Today" is frozen at Nov 24 2026 | Otherwise "opens on this month" breaks on the 1st |
 | jsdom has no layout, colors, focus rings, form association, `delegatesFocus` or popovers | Those are tested in Playwright |
 | `axe` checks rules, not experience | A clean run doesn't prove it's pleasant with a screen reader. That needs a person. Orca was tested by hand on 2026-11-27; NVDA and VoiceOver haven't been yet |
+| Hydration can't be tested in jsdom from Node | Node picks each package's `node` build even with browser globals faked, and `@lit/react`'s `node` build never sets properties. Only a real browser bundle tests hydration, hence `react19-ssr` |
 | `tsconfig.spec.json` exists | The main config emits declarations, and specs shouldn't land in `types/` |
 
 ## Navigation

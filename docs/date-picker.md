@@ -184,6 +184,8 @@ Choices that might look odd, and why.
 | Vue types through `GlobalComponents`, as a types-only entry | It's how Vue learns about globally available tags. Types only, because Vue needs no runtime help, just the `isCustomElement` setting |
 | The Vue props type is built from the class | `Pick<DatePicker, ...>` means a renamed property breaks the Vue types at compile time, not silently |
 | `@change` is typed through an `onChange` prop | Vue checks `@change` against `onChange`, so that's where the event's type goes |
+| No server-side rendering of the picker itself | Lit can render shadow DOM on the server (`@lit-labs/ssr`), but Popper and `ElementInternals` only exist in browsers. Importing is safe, which is what servers need |
+| Server safety relies on Lit's Node build | Lit's `node` export supplies a stand-in `customElements` and `HTMLElement`, so importing on a server doesn't throw. The `node` example app fails if that ever stops |
 | Registering is a separate import (`/define`) | Importing the class shouldn't have side effects. It lets apps pick their own tag, and keeps server rendering from touching `customElements` |
 | `define` checks before registering | Registering a tag twice throws, which would crash a page that loads two copies. It warns instead |
 | `.js` on relative imports in `.ts` files | TypeScript copies import paths into the type files as written. Projects using `node16` or `nodenext` resolution need the extension, or the types fail to load |

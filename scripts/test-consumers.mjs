@@ -4,7 +4,7 @@
 import { execSync } from 'node:child_process';
 import { mkdirSync, readFileSync, readdirSync, renameSync, rmSync } from 'node:fs';
 
-const APPS = ['lit', 'vue', 'react19', 'react18', 'react19-wrapper'];
+const APPS = ['lit', 'vue', 'react19', 'react18', 'react19-wrapper', 'react19-ssr', 'node'];
 const PACK_DIR = 'examples/.pack';
 
 function run(command, cwd = '.') {
@@ -29,8 +29,11 @@ try {
     rmSync(`${dir}/node_modules`, { recursive: true, force: true });
     run('pnpm install --no-lockfile', dir);
     // Apps written in TypeScript also check the package's types, like `consistent-date-picker/vue`
-    if (JSON.parse(readFileSync(`${dir}/package.json`, 'utf8')).scripts?.typecheck) run('pnpm typecheck', dir);
-    run('pnpm build', dir);
+    const { scripts = {} } = JSON.parse(readFileSync(`${dir}/package.json`, 'utf8'));
+    if (scripts.typecheck) run('pnpm typecheck', dir);
+    // `check` is for apps with no page to test, like the Node one
+    if (scripts.check) run('pnpm check', dir);
+    if (scripts.build) run('pnpm build', dir);
   }
 
   run('pnpm exec playwright test -c examples/playwright.config.ts');
