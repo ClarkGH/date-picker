@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   addDays, addMonths, buildMonthGrid, dayOfWeek, daysInMonth, formatDate, formatLongDate, isInRange,
   isSameDate, monthNames, parseDate, validateDate, weekdayNames, yearRange,
-} from './date-utils';
+} from './date-utils.js';
 
 describe('daysInMonth', () => {
   it('handles leap years, including the century rules', () => {
@@ -166,6 +166,8 @@ describe('validateDate', () => {
     ['13/01/2024', 'month'],
     ['00/01/2024', 'month'],
     ['01/01/0000', 'year'],
+    ['13/01/0000', 'month'], // two problems: the month is reported first
+    ['02/30/0000', 'year'], // the day message would say "February 0", so the year comes first
   ])('%j is a %s problem', (text, problem) => {
     expect(validateDate(text)).toEqual({ ok: false, problem });
   });

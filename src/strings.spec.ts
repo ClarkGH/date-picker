@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_STRINGS, resolveStrings } from './strings';
+import { DEFAULT_STRINGS, resolveStrings } from './strings.js';
 
 describe('resolveStrings', () => {
   it('returns the defaults with no overrides', () => {

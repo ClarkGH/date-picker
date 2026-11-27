@@ -1,4 +1,4 @@
-# hu-date-picker
+# consistent-date-picker
 
 - A text input with a calendar popup, as one web component
 - Looks and behaves the same in every browser

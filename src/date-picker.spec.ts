@@ -2,9 +2,9 @@ import {
   afterEach, beforeEach, describe, expect, it, vi,
 } from 'vitest';
 
-import type { DatePicker } from './date-picker';
-import { formatDate } from './date-utils';
-import './date-picker';
+import type { DatePicker } from './date-picker.js';
+import { formatDate } from './date-utils.js';
+import './define.js';
 
 // Spy on Popper so the lifecycle (one create per open, one destroy per close) is observable.
 // vi.mock is hoisted above the imports, so the spies it uses must be hoisted too
@@ -22,7 +22,7 @@ vi.mock('@popperjs/core', () => ({ createPopper }));
 type Picker = DatePicker;
 
 async function mount(attrs: Partial<Pick<Picker, 'selectedDate'>> = {}): Promise<Picker> {
-  const el = document.createElement('date-picker') as Picker;
+  const el = document.createElement('consistent-date-picker') as Picker;
   Object.assign(el, attrs);
   document.body.appendChild(el);
   await el.updateComplete;
@@ -819,7 +819,7 @@ describe('required and disabled', () => {
   });
 
   it('form reset goes back to the selecteddate attribute, without a change event', async () => {
-    const el = document.createElement('date-picker');
+    const el = document.createElement('consistent-date-picker');
     el.setAttribute('selecteddate', '07/04/1999');
     document.body.appendChild(el);
     await el.updateComplete;

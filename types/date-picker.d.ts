@@ -1,13 +1,13 @@
 import { LitElement, PropertyValues } from 'lit';
-import { DatePickerStringOverrides } from './strings';
+import { DatePickerStringOverrides } from './strings.js';
 export type DatePickerChangeEvent = CustomEvent<{
     value: string;
 }>;
 /**
- * `<date-picker>`: a text input plus a calendar popup (WAI-ARIA APG date picker combobox).
+ * A text input plus a calendar popup (WAI-ARIA APG date picker combobox).
  * Value is MM/DD/YYYY or ''. Fires `change` with `detail.value` when the value changes.
  * Form-associated: give it a `name` and it submits with its <form>.
- * How it works and why: docs/date-picker.md
+ * Registered by define.ts. How it works and why: docs/date-picker.md
  */
 export declare class DatePicker extends LitElement {
     static formAssociated: boolean;
@@ -97,9 +97,4 @@ export declare class DatePicker extends LitElement {
     private _renderCalendar;
     render(): import("lit").TemplateResult<1>;
     static styles: import("lit").CSSResult;
-}
-declare global {
-    interface HTMLElementTagNameMap {
-        'date-picker': DatePicker;
-    }
 }

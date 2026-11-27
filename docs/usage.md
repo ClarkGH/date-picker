@@ -1,6 +1,6 @@
 # Using the date picker
 
-`<date-picker>` is a date field for web pages. People can type a date or pick one from a calendar, and it looks and works the same in every browser. It works inside a `<form>` like a normal input.
+`<consistent-date-picker>` is a date field for web pages. People can type a date or pick one from a calendar, and it looks and works the same in every browser. It works inside a `<form>` like a normal input.
 
 ## Table of Contents
 
@@ -15,20 +15,20 @@
 
 ## Quick start
 
-Import the built file once, then use the tag anywhere. It needs a bundler (Vite, webpack, and so on) with `lit` and `@popperjs/core` installed.
+Import `define` once, then use the tag anywhere. It needs a bundler (Vite, webpack, and so on) and `lit` 3 installed. It isn't on npm yet, so for now the import is the built file, `dist/define.js`.
 
 ```js
-import './dist/date-picker.es.js';
+import 'consistent-date-picker/define'; // registers <consistent-date-picker>
 ```
 
 ```html
 <form>
-  <date-picker name="start" label="Start date" selectedDate="04/03/2023" required></date-picker>
+  <consistent-date-picker name="start" label="Start date" selectedDate="04/03/2023" required></consistent-date-picker>
 </form>
 ```
 
 ```js
-const picker = document.querySelector('date-picker');
+const picker = document.querySelector('consistent-date-picker');
 picker.addEventListener('change', (e) => console.log(e.detail.value)); // "04/03/2023"
 ```
 
@@ -102,29 +102,38 @@ Older browsers without form support for custom elements (Safari before 16.4) sti
 
 ## Styling
 
-Page CSS can't reach inside the component, so set these on the `date-picker` element instead. Anything you don't set keeps the default look.
+Page CSS can't reach inside the component, so set these on the `consistent-date-picker` element instead. Anything you don't set keeps the default look.
 
 ```css
-date-picker {
-  --date-picker-accent: #6200ee;
-  --date-picker-radius: 8px;
+consistent-date-picker {
+  --consistent-date-picker-accent: #6200ee;
+  --consistent-date-picker-radius: 8px;
 }
 ```
 
 | Custom property | Styles | Default |
 |---|---|---|
-| `--date-picker-font-size` | Calendar text, including the month and year dropdowns | `1rem` |
-| `--date-picker-background` | Calendar background | `Canvas` |
-| `--date-picker-text-color` | Calendar text color | `CanvasText` |
-| `--date-picker-border-color` | Calendar and cell borders | the text color |
-| `--date-picker-radius` | Calendar corners | `0` |
-| `--date-picker-accent` | Selected day background | `Highlight` |
-| `--date-picker-accent-text` | Selected day text | `HighlightText` |
-| `--date-picker-error-color` | Error text and invalid-outline color. Set it if your page's background doesn't match the OS theme | `#b3261e` (light) / `#f2b8b5` (dark), following the OS theme |
+| `--consistent-date-picker-font-size` | Calendar text, including the month and year dropdowns | `1rem` |
+| `--consistent-date-picker-background` | Calendar background | `Canvas` |
+| `--consistent-date-picker-text-color` | Calendar text color | `CanvasText` |
+| `--consistent-date-picker-border-color` | Calendar and cell borders | the text color |
+| `--consistent-date-picker-radius` | Calendar corners | `0` |
+| `--consistent-date-picker-accent` | Selected day background | `Highlight` |
+| `--consistent-date-picker-accent-text` | Selected day text | `HighlightText` |
+| `--consistent-date-picker-error-color` | Error text and invalid-outline color. Set it if your page's background doesn't match the OS theme | `#b3261e` (light) / `#f2b8b5` (dark), following the OS theme |
 
-The text field uses the page's font. Set `font-family` or `font-size` on the `date-picker` element to change it.
+The text field uses the page's font. Set `font-family` or `font-size` on the `consistent-date-picker` element to change it.
 
 The default colors switch with light and dark mode on their own. A color you set doesn't switch, so set it again inside a `prefers-color-scheme` media query if you need it to. If you set the colors, checking their contrast is up to you. The focus ring can't be themed, so it can never blend into the day behind it.
+
+### A different tag name
+
+Importing `define` is optional. The main entry only exports the class, so you can register it under your own tag. Register a subclass, because one class can't be registered under two tags:
+
+```js
+import { DatePicker } from 'consistent-date-picker';
+customElements.define('my-date-field', class extends DatePicker {});
+```
 
 ## Limits
 

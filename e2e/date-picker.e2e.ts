@@ -28,29 +28,29 @@ for (const colorScheme of ['light', 'dark'] as const) {
     test('demo page, calendar open on a selected date', async ({ page }) => {
       await freezeToday(page);
       await page.goto('/');
-      const input = page.locator('date-picker input');
+      const input = page.locator('consistent-date-picker input');
       await input.fill('11/03/2026');
       await input.press('ArrowDown');
-      await expect(page.locator('date-picker [role="grid"]')).toBeVisible();
+      await expect(page.locator('consistent-date-picker [role="grid"]')).toBeVisible();
       await axe(page);
     });
 
     test('demo page, error showing', async ({ page }) => {
       await page.goto('/');
-      const input = page.locator('date-picker input');
+      const input = page.locator('consistent-date-picker input');
       await input.fill('02/30/2024');
       await input.blur();
-      await expect(page.locator('date-picker .error')).toHaveText('February 2024 has 29 days.');
+      await expect(page.locator('consistent-date-picker .error')).toHaveText('February 2024 has 29 days.');
       await axe(page);
     });
 
     test('the focus ring stands out on the selected day', async ({ page }) => {
       await freezeToday(page);
       await page.goto('/');
-      const input = page.locator('date-picker input');
+      const input = page.locator('consistent-date-picker input');
       await input.fill('11/03/2026');
       await input.press('ArrowDown');
-      const cell = page.locator('date-picker td[aria-selected="true"]');
+      const cell = page.locator('consistent-date-picker td[aria-selected="true"]');
       await expect(cell).toBeFocused();
 
       const style = await cell.evaluate((el) => {
@@ -93,8 +93,8 @@ test.describe('styling', () => {
 
   test('with no custom properties set, it looks the same as before', async ({ page }) => {
     await page.goto('/');
-    await page.locator('date-picker input').fill('11/03/2026');
-    const { calendar, day } = await openAndRead(page.locator('date-picker'));
+    await page.locator('consistent-date-picker input').fill('11/03/2026');
+    const { calendar, day } = await openAndRead(page.locator('consistent-date-picker'));
 
     expect(calendar.fontSize).toBe('16px');
     expect(calendar.background).toBe(await systemColor(page, 'Canvas'));
@@ -108,13 +108,13 @@ test.describe('styling', () => {
   test('the calendar follows the root font size (rem, not px)', async ({ page }) => {
     await page.goto('/');
     await page.evaluate(() => (document.documentElement.style.fontSize = '24px'));
-    await page.locator('date-picker input').press('ArrowDown');
-    await expect(page.locator('date-picker .date-picker')).toHaveCSS('font-size', '24px');
+    await page.locator('consistent-date-picker input').press('ArrowDown');
+    await expect(page.locator('consistent-date-picker .date-picker')).toHaveCSS('font-size', '24px');
   });
 
   test('the text field uses the font set on the element', async ({ page }) => {
     await page.goto('/');
-    const host = page.locator('date-picker');
+    const host = page.locator('consistent-date-picker');
     await host.evaluate((el: HTMLElement) => {
       el.style.fontFamily = 'monospace';
       el.style.fontSize = '22px';
@@ -153,8 +153,8 @@ test.describe('layout', () => {
   test('fits a 320px viewport (400% zoom) without sideways scrolling', async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 640 });
     await page.goto('/');
-    await page.locator('date-picker input').press('ArrowDown');
-    await expect(page.locator('date-picker [role="grid"]')).toBeVisible();
+    await page.locator('consistent-date-picker input').press('ArrowDown');
+    await expect(page.locator('consistent-date-picker [role="grid"]')).toBeVisible();
 
     const { scrollWidth, innerWidth } = await page.evaluate(() => ({
       scrollWidth: document.documentElement.scrollWidth,
@@ -162,7 +162,7 @@ test.describe('layout', () => {
     }));
     expect(scrollWidth).toBeLessThanOrEqual(innerWidth);
 
-    const box = await page.locator('date-picker .date-picker').boundingBox();
+    const box = await page.locator('consistent-date-picker .date-picker').boundingBox();
     expect(box!.x).toBeGreaterThanOrEqual(0);
     expect(box!.x + box!.width).toBeLessThanOrEqual(320);
   });
@@ -186,7 +186,7 @@ test.describe('layout', () => {
 
   test('the calendar button is at least 24x24 (WCAG 2.5.8)', async ({ page }) => {
     await page.goto('/');
-    const box = await page.locator('date-picker .toggle').boundingBox();
+    const box = await page.locator('consistent-date-picker .toggle').boundingBox();
     expect(box!.width).toBeGreaterThanOrEqual(24);
     expect(box!.height).toBeGreaterThanOrEqual(24);
   });
@@ -194,7 +194,7 @@ test.describe('layout', () => {
   test('the field is centered on the demo page', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.goto('/');
-    const box = await page.locator('date-picker input').boundingBox();
+    const box = await page.locator('consistent-date-picker input').boundingBox();
     const fieldCenter = box!.x + box!.width / 2;
     expect(Math.abs(fieldCenter - 640)).toBeLessThan(2);
   });
@@ -237,15 +237,15 @@ test.describe('focus', () => {
     await freezeToday(page);
     await page.goto('/');
     await page.keyboard.press('Tab');
-    await expect(page.locator('date-picker input')).toBeFocused();
+    await expect(page.locator('consistent-date-picker input')).toBeFocused();
 
     await page.keyboard.press('ArrowDown');
     await page.keyboard.press('ArrowRight');
     await page.keyboard.press('PageDown');
     await page.keyboard.press('Enter');
 
-    await expect(page.locator('date-picker input')).toHaveValue('12/25/2026');
-    await expect(page.locator('date-picker .toggle')).toBeFocused();
+    await expect(page.locator('consistent-date-picker input')).toHaveValue('12/25/2026');
+    await expect(page.locator('consistent-date-picker .toggle')).toBeFocused();
   });
 });
 

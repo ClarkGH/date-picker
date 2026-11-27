@@ -4,7 +4,7 @@ POC date-picker. Consistent across browsers.
 ## Using it
 
 ```html
-<date-picker name="start" label="Start date" required></date-picker>
+<consistent-date-picker name="start" label="Start date" required></consistent-date-picker>
 ```
 
 Properties, keyboard, forms and styling: [Using the date picker](docs/usage.md).

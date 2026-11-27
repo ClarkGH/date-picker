@@ -59,8 +59,9 @@ export function validateDate(text: string): DateValidation {
   const day = Number(match[3]);
   const year = Number(match[4]);
 
-  if (year < MIN_YEAR || year > MAX_YEAR) return { ok: false, problem: 'year' };
+  // Month first, matching MM/DD/YYYY. Year before day, since the day message names the year
   if (month < 1 || month > 12) return { ok: false, problem: 'month' };
+  if (year < MIN_YEAR || year > MAX_YEAR) return { ok: false, problem: 'year' };
   if (day < 1 || day > daysInMonth(year, month)) return { ok: false, problem: 'day', year, month };
 
   return { ok: true, date: { year, month, day } };

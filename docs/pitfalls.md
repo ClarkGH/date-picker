@@ -147,7 +147,7 @@ Here: the width is capped at the viewport, row heights scale with the viewport, 
 
 `color: red` looks like an obvious choice for an error, but it measures 4.0:1 on white, below the 4.5:1 minimum for text. It's also worse on dark backgrounds. A component also can't know the background it'll be placed on.
 
-Here: tested colors for light and dark, plus `--date-picker-error-color` for pages that don't match the OS theme.
+Here: tested colors for light and dark, plus `--consistent-date-picker-error-color` for pages that don't match the OS theme.
 
 ## Labels and shadow DOM
 

@@ -1,5 +1,5 @@
 import { LitElement, PropertyValues, css, html, nothing } from 'lit';
-import { customElement, property, query, state } from 'lit/decorators.js';
+import { property, query, state } from 'lit/decorators.js';
 import { guard } from 'lit/directives/guard.js';
 import { live } from 'lit/directives/live.js';
 import { createPopper, Instance } from '@popperjs/core';
@@ -21,8 +21,8 @@ import {
   validateDate,
   weekdayNames,
   yearRange,
-} from './date-utils';
-import { DatePickerStringOverrides, resolveStrings } from './strings';
+} from './date-utils.js';
+import { DatePickerStringOverrides, resolveStrings } from './strings.js';
 
 /** Years either side of today in the dropdown. Wider lists are slow for screen readers ("1 of 1001"). */
 const YEAR_SPAN = 100;
@@ -34,12 +34,11 @@ type FieldProblem = Exclude<DateValidation, { ok: true }> | { ok: false; problem
 export type DatePickerChangeEvent = CustomEvent<{ value: string }>;
 
 /**
- * `<date-picker>`: a text input plus a calendar popup (WAI-ARIA APG date picker combobox).
+ * A text input plus a calendar popup (WAI-ARIA APG date picker combobox).
  * Value is MM/DD/YYYY or ''. Fires `change` with `detail.value` when the value changes.
  * Form-associated: give it a `name` and it submits with its <form>.
- * How it works and why: docs/date-picker.md
+ * Registered by define.ts. How it works and why: docs/date-picker.md
  */
-@customElement('date-picker')
 export class DatePicker extends LitElement {
   static formAssociated = true;
 
@@ -191,7 +190,7 @@ export class DatePicker extends LitElement {
       try {
         Intl.DateTimeFormat.supportedLocalesOf(tag);
       } catch {
-        console.warn(`date-picker: invalid locale "${tag}", using ${FALLBACK_LOCALE}`);
+        console.warn(`consistent-date-picker: invalid locale "${tag}", using ${FALLBACK_LOCALE}`);
         resolved = FALLBACK_LOCALE;
       }
       this._checkedLocale = { tag, resolved };
@@ -246,7 +245,7 @@ export class DatePicker extends LitElement {
       this._popper.forceUpdate();
     } catch (err) {
       // Unpositioned, the calendar still works in normal flow below the input
-      console.error('date-picker: could not position calendar', err);
+      console.error('consistent-date-picker: could not position calendar', err);
     }
 
     this._activeCell?.focus();
@@ -539,7 +538,7 @@ export class DatePicker extends LitElement {
   static styles = css`
     /* Error colors: 6.5:1 on white, 9.1:1 on #242424 (WCAG 1.4.3 needs 4.5:1) */
     :host {
-      --_error: var(--date-picker-error-color, #b3261e);
+      --_error: var(--consistent-date-picker-error-color, #b3261e);
       display: flex;
       flex-direction: column;
       width: 100%;
@@ -548,7 +547,7 @@ export class DatePicker extends LitElement {
 
     @media (prefers-color-scheme: dark) {
       :host {
-        --_error: var(--date-picker-error-color, #f2b8b5);
+        --_error: var(--consistent-date-picker-error-color, #f2b8b5);
       }
     }
 
@@ -627,15 +626,15 @@ export class DatePicker extends LitElement {
       display: flex;
       flex-direction: column;
       box-sizing: border-box;
-      font-size: var(--date-picker-font-size, 1rem);
+      font-size: var(--consistent-date-picker-font-size, 1rem);
       width: min(400px, calc(100vw - 16px));
       max-height: calc(100vh - 16px);
       overflow-y: auto;
       padding: 8px;
-      border: 1px solid var(--date-picker-border-color, currentColor);
-      border-radius: var(--date-picker-radius, 0);
-      background: var(--date-picker-background, Canvas);
-      color: var(--date-picker-text-color, CanvasText);
+      border: 1px solid var(--consistent-date-picker-border-color, currentColor);
+      border-radius: var(--consistent-date-picker-radius, 0);
+      background: var(--consistent-date-picker-background, Canvas);
+      color: var(--consistent-date-picker-text-color, CanvasText);
     }
 
     .month-year__picker {
@@ -655,7 +654,7 @@ export class DatePicker extends LitElement {
 
     th,
     td {
-      border: 1px solid var(--date-picker-border-color, currentColor);
+      border: 1px solid var(--consistent-date-picker-border-color, currentColor);
       padding: clamp(2px, 1vw, 10px);
       text-align: left;
       vertical-align: top;
@@ -685,8 +684,8 @@ export class DatePicker extends LitElement {
     }
 
     .day[aria-selected='true'] {
-      background: var(--date-picker-accent, Highlight);
-      color: var(--date-picker-accent-text, HighlightText);
+      background: var(--consistent-date-picker-accent, Highlight);
+      color: var(--consistent-date-picker-accent-text, HighlightText);
     }
 
     .day[aria-current='date'] {
@@ -705,10 +704,4 @@ export class DatePicker extends LitElement {
       border: 0;
     }
   `;
-}
-
-declare global {
-  interface HTMLElementTagNameMap {
-    'date-picker': DatePicker;
-  }
 }

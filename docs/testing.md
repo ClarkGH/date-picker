@@ -19,6 +19,7 @@ pnpm test:e2e                          # Playwright + axe; starts the dev server
 | [date-utils.spec.ts](../src/date-utils.spec.ts) | Leap years, rollover, month grids, year limits, stepping days and months across DST, cached formatters |
 | [date-picker.spec.ts](../src/date-picker.spec.ts) | One test per fixed bug, the Popper lifecycle (with Popper mocked), every key, focus, ARIA, errors, values set from outside, locale and strings |
 | [strings.spec.ts](../src/strings.spec.ts) | Overrides merge without losing defaults |
+| [define.spec.ts](../src/define.spec.ts) | `/define` registers the tag once, a second copy warns instead of crashing, and the main entry registers nothing |
 | [date-picker.e2e.ts](../e2e/date-picker.e2e.ts) | axe WCAG 2.2 AA scans in light and dark, the focus ring, styling, 320px reflow, escaping `overflow: hidden`, the 24×24 button, no page jump on open, focus, and real form submit, reset and validation |
 
 [e2e/fixture.html](../e2e/fixture.html) is the page the browser tests run against.

@@ -23,6 +23,8 @@ The core idea: what the field *shows* and the date that's *committed* are two se
 | [date-picker.ts](../src/date-picker.ts) | The component: state, rendering, keyboard, forms, styles |
 | [date-utils.ts](../src/date-utils.ts) | Calendar math: parsing, validating, month grids, stepping days and months. No DOM, no Lit |
 | [strings.ts](../src/strings.ts) | Every piece of UI text, and how overrides merge |
+| [index.ts](../src/index.ts) | The main entry: exports the class and types, registers nothing |
+| [define.ts](../src/define.ts) | The `/define` entry: registers the tag, safely, if it isn't already taken |
 
 ## Rules
 
@@ -148,7 +150,7 @@ Choices that might look odd, and why.
 | `delegatesFocus` | `picker.focus()` reaches the field, so "jump to the error" links work |
 | No Tab trap | Traps are for modal dialogs. Leaving the component closes the calendar instead |
 | A two-tone focus ring | One color vanished on the selected day, which is where focus lands (WCAG 2.4.7) |
-| Error colors measured, plus an override | `red` measured 4.0:1, below the 4.5:1 minimum (WCAG 1.4.3). The page's background is unknown, so `--date-picker-error-color` lets it adjust |
+| Error colors measured, plus an override | `red` measured 4.0:1, below the 4.5:1 minimum (WCAG 1.4.3). The page's background is unknown, so `--consistent-date-picker-error-color` lets it adjust |
 | Sizes that shrink | At a 320px viewport (400% zoom) it fits without sideways scrolling (WCAG 1.4.10) |
 | `min-height` on the field | Keeps the button above the 24×24 minimum target (WCAG 2.5.8) |
 
@@ -164,6 +166,13 @@ Choices that might look odd, and why.
 | The host is as wide as the field | The calendar floats, so the page can align the picker like any input |
 | TypeScript 6, not 7 | 7 is the native compiler rewrite. Tools this project will need, like `vue-tsc`, build on the JavaScript compiler's API |
 | Lit and Popper left out of the bundle | An app that already has them would ship them twice. 45.6 KB became 21.9 KB, and 19.6 KB after the Vite 8 upgrade |
+| Lit is a peer dependency, Popper a normal one | Two copies of Lit on a page cause warnings and wasted bytes, so the app supplies Lit. Apps rarely have Popper already |
+| The tag is the package name, `consistent-date-picker` | A bare `date-picker` would clash with other libraries. Matching the package name tells you where the tag comes from |
+| CSS properties use the full tag name | `--date-picker-accent` could be picked up from styles meant for another date picker |
+| Registering is a separate import (`/define`) | Importing the class shouldn't have side effects. It lets apps pick their own tag, and keeps server rendering from touching `customElements` |
+| `define` checks before registering | Registering a tag twice throws, which would crash a page that loads two copies. It warns instead |
+| `.js` on relative imports in `.ts` files | TypeScript copies import paths into the type files as written. Projects using `node16` or `nodenext` resolution need the extension, or the types fail to load |
+| `public/` isn't copied into `dist/` | It holds the demo page's assets, not the library's |
 
 ## Navigation
 

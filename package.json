@@ -1,16 +1,43 @@
 {
-  "name": "hu-date-picker",
+  "name": "consistent-date-picker",
   "private": true,
-  "version": "0.5.0",
-  "type": "module",
-  "main": "dist/date-picker.es.js",
-  "exports": {
-    ".": "./dist/date-picker.es.js"
+  "version": "0.8.0",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
   },
-  "types": "types/date-picker.d.ts",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./types/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./define": {
+      "types": "./types/define.d.ts",
+      "import": "./dist/define.js"
+    }
+  },
+  "sideEffects": [
+    "./dist/define.js"
+  ],
   "files": [
     "dist",
     "types"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ClarkGH/date-picker.git"
+  },
+  "keywords": [
+    "date-picker",
+    "datepicker",
+    "web-component",
+    "custom-element",
+    "lit",
+    "accessible",
+    "form-associated"
   ],
   "scripts": {
     "dev": "vite",
@@ -19,15 +46,18 @@
     "typecheck": "tsc -p tsconfig.spec.json",
     "test:e2e": "playwright test"
   },
+  "peerDependencies": {
+    "lit": "^3.0.0"
+  },
   "dependencies": {
-    "@popperjs/core": "^2.11.7",
-    "lit": "^3.3.3"
+    "@popperjs/core": "^2.11.7"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.14.1",
     "@playwright/test": "1.65.1",
     "@types/node": "^26.6.7",
     "jsdom": "^31.0.1",
+    "lit": "^3.3.3",
     "typescript": "^6.0.3",
     "vite": "^8.4.0",
     "vitest": "^5.1.2"
