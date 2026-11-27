@@ -25,6 +25,7 @@ The core idea: what the field *shows* and the date that's *committed* are two se
 | [strings.ts](../src/strings.ts) | Every piece of UI text, and how overrides merge |
 | [index.ts](../src/index.ts) | The main entry: exports the class and types, registers nothing |
 | [define.ts](../src/define.ts) | The `/define` entry: registers the tag, safely, if it isn't already taken |
+| [react.ts](../src/react.ts) | The `/react` entry: a React component made with `@lit/react`, which registers the tag on import |
 | [custom-elements-manifest.config.mjs](../custom-elements-manifest.config.mjs) | How `pnpm analyze` builds `custom-elements.json` from the class's JSDoc |
 
 ## Rules
@@ -175,6 +176,10 @@ Choices that might look odd, and why.
 | Lit is a peer dependency, Popper a normal one | Two copies of Lit on a page cause warnings and wasted bytes, so the app supplies Lit. Apps rarely have Popper already |
 | The tag is the package name, `consistent-date-picker` | A bare `date-picker` would clash with other libraries. Matching the package name tells you where the tag comes from |
 | CSS properties use the full tag name | `--date-picker-accent` could be picked up from styles meant for another date picker |
+| A React wrapper, from `@lit/react` | React 18 sets props as attributes and can't listen for custom events. The wrapper sets properties and maps events. It's Lit's own adapter, so it follows Lit |
+| The wrapper's event is `onDateChange`, not `onChange` | React treats `onChange` as its own change handler and passes its own event object. A new name gets the real event, with `detail` |
+| The wrapper registers the tag on import | React users import one thing. It goes through the same guarded `define` |
+| `react` is an optional peer dependency | Only the `/react` entry uses it, so Lit and Vue apps never install it |
 | Registering is a separate import (`/define`) | Importing the class shouldn't have side effects. It lets apps pick their own tag, and keeps server rendering from touching `customElements` |
 | `define` checks before registering | Registering a tag twice throws, which would crash a page that loads two copies. It warns instead |
 | `.js` on relative imports in `.ts` files | TypeScript copies import paths into the type files as written. Projects using `node16` or `nodenext` resolution need the extension, or the types fail to load |

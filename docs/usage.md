@@ -70,7 +70,17 @@ vue({ template: { compilerOptions: { isCustomElement: (tag) => tag === 'consiste
 <consistent-date-picker selectedDate={value} onChange={(e) => setValue(e.target.selectedDate)} />
 ```
 
-(`onchange`, all lowercase, gets the real event with `e.detail` instead.) React 18 needs a small wrapper, which is coming.
+(`onchange`, all lowercase, gets the real event with `e.detail` instead.)
+
+**React 18, or React 19 with a proper component:** use the wrapper. It registers the tag itself, so there's no separate `define` import, and `onDateChange` gets the real event:
+
+```jsx
+import { DatePicker } from 'consistent-date-picker/react';
+
+<DatePicker selectedDate={value} onDateChange={(e) => setValue(e.detail.value)} />
+```
+
+It needs `react` 18 or 19. Lit and Vue apps never install React.
 
 ## Properties
 

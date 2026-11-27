@@ -10,7 +10,7 @@ pnpm typecheck                         # TypeScript over src/ and e2e/, specs in
 pnpm build                             # declarations + library build
 pnpm exec playwright install chromium  # once, downloads the browser
 pnpm test:e2e                          # Playwright + axe; starts the dev server itself
-pnpm test:consumers                    # packs the library and tests it in the Lit, Vue and React 19 example apps
+pnpm test:consumers                    # packs the library and tests it in the five example apps
 ```
 
 ## What each suite covers
@@ -27,7 +27,7 @@ pnpm test:consumers                    # packs the library and tests it in the L
 
 [e2e/fixture.html](../e2e/fixture.html) is the page the browser tests run against.
 
-**The example apps** in [examples/](../examples) install the packed tarball, not the source, so they test what npm would ship. They're built for production, because tree-shaking bugs only show up there: with `sideEffects: false`, all three fail, because the bundler drops `/define`. [smoke.e2e.ts](../examples/smoke.e2e.ts) runs the same steps in each one, and also fails on any console error or warning.
+**The example apps** in [examples/](../examples) install the packed tarball, not the source, so they test what npm would ship. There are five: Lit, Vue, React 19 with the bare tag, and the React wrapper on both React 18 and React 19. They're built for production, because tree-shaking bugs only show up there: with `sideEffects: false`, the bundler drops `/define`, and they fail. [smoke.e2e.ts](../examples/smoke.e2e.ts) runs the same steps in each one, and also fails on any console error or warning.
 
 **Every fix was checked by breaking it.** Each browser test was run with its fix undone, to watch it fail. For example, removing `forceUpdate` makes the page jump from y=1830 to y=64 on open, and the old `red` error color fails axe's contrast rule.
 

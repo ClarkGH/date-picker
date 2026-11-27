@@ -16,7 +16,7 @@ Each phase ends with a check: something you can run that proves the phase is don
 - [x] Phase 3: consumer apps (2026-11-27)
 - [x] Phase 4: Custom Elements Manifest and types (2026-11-27)
 - [x] Phase 5: styling API (2026-11-27)
-- [ ] Phase 6: React adapter
+- [x] Phase 6: React adapter (2026-11-27)
 - [ ] Phase 7: Vue polish
 - [ ] Phase 8: SSR safety
 - [ ] Phase 9: docs and release
@@ -125,6 +125,8 @@ Shadow DOM blocks page CSS. Without hooks, every consumer forks the component to
 **Check:** each example app restyles the picker using only `::part()` and custom properties, and the existing axe and contrast specs still pass with the default styles.
 
 ## Phase 6: React adapter
+
+*Done 2026-11-27.* [src/react.ts](src/react.ts) wraps the element with `@lit/react` 1.0.8 as `DatePicker`, with an `onDateChange` event prop. It's exported as `./react`, with `react` an optional peer (`^18 || ^19`). `examples/react18` and `examples/react19-wrapper` run the same code on each React version, and all five example apps pass the smoke test. A type test checks that `onDateChange` gets a `DatePickerChangeEvent`. publint and attw are clean for all three entries.
 
 Only if Phase 0 picked React 18 support.
 

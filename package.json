@@ -17,10 +17,15 @@
     "./define": {
       "types": "./types/define.d.ts",
       "import": "./dist/define.js"
+    },
+    "./react": {
+      "types": "./types/react.d.ts",
+      "import": "./dist/react.js"
     }
   },
   "sideEffects": [
-    "./dist/define.js"
+    "./dist/define.js",
+    "./dist/react.js"
   ],
   "files": [
     "dist",
@@ -51,9 +56,16 @@
     "analyze": "cem analyze && node scripts/check-manifest.mjs"
   },
   "peerDependencies": {
-    "lit": "^3.0.0"
+    "lit": "^3.0.0",
+    "react": "^18.0.0 || ^19.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
   },
   "dependencies": {
+    "@lit/react": "^1.0.8",
     "@popperjs/core": "^2.11.7"
   },
   "devDependencies": {
@@ -61,8 +73,10 @@
     "@custom-elements-manifest/analyzer": "^0.11.0",
     "@playwright/test": "1.65.1",
     "@types/node": "^26.6.7",
+    "@types/react": "^19.3.3",
     "jsdom": "^31.0.1",
     "lit": "^3.3.3",
+    "react": "^19.3.1",
     "typescript": "^6.0.3",
     "vite": "^8.4.0",
     "vitest": "^5.1.2"

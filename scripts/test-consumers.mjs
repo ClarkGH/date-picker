@@ -4,7 +4,7 @@
 import { execSync } from 'node:child_process';
 import { mkdirSync, readdirSync, renameSync, rmSync } from 'node:fs';
 
-const APPS = ['lit', 'vue', 'react19'];
+const APPS = ['lit', 'vue', 'react19', 'react18', 'react19-wrapper'];
 const PACK_DIR = 'examples/.pack';
 
 function run(command, cwd = '.') {
