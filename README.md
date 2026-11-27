@@ -1,6 +1,14 @@
 # date-picker
 POC date-picker. Consistent across browsers.
 
+## Using it
+
+```html
+<date-picker name="start" label="Start date" required></date-picker>
+```
+
+Properties, keyboard, forms and styling: [Using the date picker](docs/usage.md).
+
 ## Running Locally
 1. Clone Repo
 2. run `$ pnpm dev`
@@ -19,6 +27,6 @@ POC date-picker. Consistent across browsers.
 ## Testing
 
 - `$ pnpm test` - unit and component specs, colocated as `*.spec.ts`
-- `$ pnpm typecheck` - TypeScript over `src/`, specs included
+- `$ pnpm typecheck` - TypeScript over `src/` and `e2e/`, specs included
 - `$ pnpm exec playwright install chromium` - once, downloads the browser for the next command
 - `$ pnpm test:e2e` - Playwright + axe in Chromium; starts the dev server itself

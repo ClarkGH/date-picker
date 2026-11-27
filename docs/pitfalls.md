@@ -101,7 +101,7 @@ Popup libraries (Popper, Floating UI) need both elements to exist and must be to
 - Creating a new instance on every click and never destroying any, which leaks scroll and resize listeners
 - Races: open, close, open quickly, and you get two instances
 
-Here: see [Date Picker: Popper lifecycle](date-picker.md#popper-lifecycle).
+Here: see [How it works: Popper lifecycle](date-picker.md#popper-lifecycle).
 
 ## Popup layering
 
@@ -135,7 +135,7 @@ The usual gaps:
 - An icon button with no name, read as "button"
 - The format only given in the placeholder, which disappears as you type **(hit)**
 
-Here: the WAI-ARIA APG date picker combobox pattern, covered in [Date Picker: Keyboard and focus](date-picker.md#keyboard-and-focus).
+Here: the WAI-ARIA APG date picker combobox pattern, covered in [How it works: Keyboard and focus](date-picker.md#keyboard-and-focus).
 
 ## Fixed-size popups
 
@@ -167,7 +167,7 @@ Here: `addMonths` clamps to the last day of the target month, so Jan 31 goes to 
 
 An `<input>` inside a shadow root is invisible to the `<form>` around the component. It isn't submitted, it doesn't block submission when it's invalid, form reset doesn't touch it, a disabled `<fieldset>` doesn't disable it, and pressing Enter in it doesn't submit. The component looks like a form field and behaves like decoration.
 
-Here: a form-associated custom element (`static formAssociated = true` + `ElementInternals`), plus Enter calling `form.requestSubmit()` by hand. Details in [Date Picker: Forms](date-picker.md#forms).
+Here: a form-associated custom element (`static formAssociated = true` + `ElementInternals`), plus Enter calling `form.requestSubmit()` by hand. Details in [How it works: Forms](date-picker.md#forms).
 
 ## Strict input
 
@@ -194,5 +194,6 @@ Here: specs freeze `Date` with `vi.setSystemTime`.
 
 ## Navigation
 
-- **[Index](INDEX.md)** - Overview, scope, next steps
-- **[Date Picker](date-picker.md)** - API, how it works, decisions, testing
+- **[Index](INDEX.md)** - Start here
+- **[Using the date picker](usage.md)** - Properties, typing, keyboard, forms, styling
+- **[How it works](date-picker.md)** - Rules, state, decisions

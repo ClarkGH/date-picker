@@ -1,273 +1,173 @@
-# Date Picker Component
+# How the date picker works
+
+This is for people changing the code. [Using the date picker](usage.md) covers it from the outside.
+
+The core idea: what the field *shows* and the date that's *committed* are two separate things. Typing only changes what's shown. Leaving the field, pressing Enter, or clicking a day commits it. Lit draws everything, and Popper floats the calendar under the field.
 
 ## Table of Contents
 
-- [API](#api)
-  - [Styling](#styling)
+- [Files](#files)
 - [Rules](#rules)
-- [How it works](#how-it-works)
-  - [State](#state)
-  - [Typing a date](#typing-a-date)
-  - [Picking a day](#picking-a-day)
-  - [Forms](#forms)
-  - [Popper lifecycle](#popper-lifecycle)
-  - [Keyboard and focus](#keyboard-and-focus)
+- [State](#state)
+- [Typing and committing](#typing-and-committing)
+- [Popper lifecycle](#popper-lifecycle)
+- [Keyboard and focus](#keyboard-and-focus)
+- [Forms](#forms)
 - [Decisions](#decisions)
-- [Testing](#testing)
 - [Navigation](#navigation)
 
-## API
+## Files
 
-```html
-<form>
-  <date-picker name="start" label="Start date" selectedDate="04/03/2023" required></date-picker>
-</form>
-```
-
-```js
-picker.locale = 'fr-FR';                        // month and weekday names
-picker.strings = { hint: 'Format : MM/JJ/AAAA' }; // any subset of the UI text
-picker.focus();                                 // focuses the input
-```
-
-| Member | Kind | Meaning |
-|---|---|---|
-| `selectedDate` | property, string | The committed value: a valid `MM/DD/YYYY` or `''` |
-| `isFieldValid` | read-only property, boolean | `true` when the input holds a real date; `false` when empty or invalid. Updates as you type |
-| `label` | property, string | Visible label above the field, which is also its accessible name. Defaults to `Date` |
-| `name` | property/attribute | Form field name. The form submits `selectedDate` under it |
-| `required` | property/attribute | Empty is invalid: blocks form submission and says "Enter a date." on blur |
-| `disabled` | property/attribute | Disables the field and button and closes the calendar. A disabled `<fieldset>` does the same |
-| `locale` | property, string | BCP 47 tag for month and weekday names and the button's spoken date. Default `en-US`. The typed format stays MM/DD/YYYY. An invalid tag falls back to `en-US` with one console warning |
-| `strings` | property (JS only) | Overrides for UI text: hint, button and dialog names, dropdown names, error messages. Any subset; `errors` merges one level deep. Defaults are in [strings.ts](../src/strings.ts) |
-| `focus()` | method | Focuses the input (`delegatesFocus`) |
-| `change` | event | Fires when `selectedDate` changes. `event.detail.value` is the new value. Bubbles out of the shadow root |
-
-The HTML attribute is `selecteddate`, all lowercase, because attributes are case-insensitive. Setting the property from JS is the usual route.
-
-### Styling
-
-Page CSS can't reach inside the component, so set these on the `date-picker` element instead. Anything you don't set keeps the default look.
-
-```css
-date-picker {
-  --date-picker-accent: #6200ee;
-  --date-picker-radius: 8px;
-}
-```
-
-| Custom property | Styles | Default |
-|---|---|---|
-| `--date-picker-font-size` | Calendar text, including the month and year dropdowns | `1rem` |
-| `--date-picker-background` | Calendar background | `Canvas` |
-| `--date-picker-text-color` | Calendar text color | `CanvasText` |
-| `--date-picker-border-color` | Calendar and cell borders | the text color |
-| `--date-picker-radius` | Calendar corners | `0` |
-| `--date-picker-accent` | Selected day background | `Highlight` |
-| `--date-picker-accent-text` | Selected day text | `HighlightText` |
-| `--date-picker-error-color` | Error text and invalid-outline color. Set it if your page's background doesn't match the OS theme | `#b3261e` (light) / `#f2b8b5` (dark), following the OS theme |
-
-The text field uses the page's font. Set `font-family` or `font-size` on the `date-picker` element to change it.
-
-The default colors switch with light and dark mode on their own. A color you set doesn't switch, so set it again inside a `prefers-color-scheme` media query if you need it to. If you set the colors, checking their contrast is up to you. The focus ring can't be themed (see [Decisions](#decisions)).
+| File | Holds |
+|---|---|
+| [date-picker.ts](../src/date-picker.ts) | The component: state, rendering, keyboard, forms, styles |
+| [date-utils.ts](../src/date-utils.ts) | Calendar math: parsing, validating, month grids, stepping days and months. No DOM, no Lit |
+| [strings.ts](../src/strings.ts) | Every piece of UI text, and how overrides merge |
 
 ## Rules
 
-1. **`selectedDate` is always valid or empty.** Invalid typing never reaches it, and neither does an invalid value set from outside. Anything that reads the value can trust it.
-2. **One way in.** Every change to the value goes through `_commit`, so `change` fires once, and only when the value really changes.
-3. **The view is not the value.** `_viewYear` and `_viewMonth` are what the calendar shows. Browsing to March doesn't change the selected date.
-4. **The calendar mirrors the field.** The highlighted day is whatever the input's text parses to, not `selectedDate`. If the text is partial or invalid, nothing is highlighted, so the calendar never shows a different date than the field.
-5. **Months are 1-based everywhere outside `date-utils.ts`.** The 0-based JS month only appears inside that file. See [Pitfalls: zero-based months](pitfalls.md#zero-based-months).
-6. **Calendar math stays pure.** [date-utils.ts](../src/date-utils.ts) has no DOM and no Lit, so it's tested on its own.
-7. **Never parse a string with `new Date(string)`.** Parse the parts yourself and build the date from numbers. See [Pitfalls: timezones](pitfalls.md#timezones-and-string-parsing).
+1. **`selectedDate` is always valid or empty.** Not from typing, not from a page setting it. Anything that reads it can trust it.
+2. **One way in.** Every value change goes through `_commit`, so `change` fires once, and only on a real change.
+3. **The view is not the value.** `_viewYear` and `_viewMonth` are what the calendar shows. Browsing to March doesn't change the date.
+4. **The calendar mirrors the field.** The highlighted day comes from the field's text, not `selectedDate`, so the two never disagree.
+5. **Months are 1-based outside `date-utils.ts`.** JavaScript's 0-based month stays inside that file. See [Pitfalls: zero-based months](pitfalls.md#zero-based-months).
+6. **Calendar math stays pure.** No DOM or Lit in `date-utils.ts`, so it's tested on its own.
+7. **Never `new Date(string)`.** Parse the parts and build the date from numbers. See [Pitfalls: timezones](pitfalls.md#timezones-and-string-parsing).
 
-## How it works
+## State
 
-### State
-
-| Field | Public | Holds |
-|---|---|---|
-| `selectedDate` | yes | Committed value |
-| `isFieldValid` | yes, read-only | Whether the input text is a real date. Worked out from `_text`, never stored |
-| `_text` | no | What the input shows. Differs from `selectedDate` while the text is invalid |
-| `_shownProblem` | no | What's wrong with the field, shown under it. Set on blur or Enter, not on every keystroke |
-| `_formDisabled` | no | Set by a disabled `<fieldset>` or form, separately from `disabled` |
-| `_viewYear`, `_viewMonth` | no | The month on screen |
-| `_focusDay` | no | The day in that month holding the grid's one tab stop |
-| `_isOpen` | no | Calendar shown |
-| `_popper` | no | The live Popper instance, or `null` |
-
-When a page sets `selectedDate` from outside, `willUpdate` syncs `_text` and the view to it. A loose date (`4/3/2023`) is stored as `04/03/2023`. Anything that isn't a date stays in the field so it can be fixed, but `selectedDate` becomes `''`. Neither fires `change`, because the page made the change itself. Opening the calendar always starts on the field's date, or today if the field is empty or invalid. Browsing to another month and closing doesn't carry over to the next open.
-
-### Typing a date
-
-Typing and committing are separate steps.
-
-**While typing (`input`)**, the calendar follows the field. Once the text is a complete, real date, the view jumps to that month and highlights the day. Partial text like `04/03/20` never parses, so the calendar doesn't jump around mid-keystroke. Nothing is committed, no `change` fires, and no error shows.
-
-**On blur**, the value is committed or rejected. Validation waits until then because half-typed text like `04/0` is never valid, and an error flashing while someone is still typing is noise. Committing on every keystroke would also fire `change` for dates the user hasn't settled on. Native inputs work the same way.
-
-**On Enter**, the same commit happens, then the form is submitted. See [Forms](#forms).
-
-- Empty: the value is cleared. No error, unless the field is `required`
-- Valid: the text is normalized to MM/DD/YYYY, committed, and the calendar's view moves to that month
-- Invalid: the text **stays** in the input, an error says what's wrong, `aria-invalid="true"` is set, and `selectedDate` doesn't change
-
-**Lenient in, strict out.** One or two digit month and day, a four-digit year, and any one separator: `4/3/2023`, `04-03-2023`, `4.3.2023`, `4 3 2023`. All of them become `04/03/2023`. Mixed separators (`4/3-2023`) are rejected.
-
-**Errors say what's wrong** (WCAG 3.3.3). `validateDate` returns a reason, not just pass or fail:
-
-| Typed | Message |
+| Field | Holds |
 |---|---|
-| `soon`, `2023-04-03` | Enter the date as MM/DD/YYYY, like 04/03/2023. |
-| `4/3/23` | Use a four-digit year, like 2023. |
-| `01/01/0000` | The year must be from 1 to 9999. |
-| `13/01/2024` | The month must be from 1 to 12. |
-| `02/29/2023` | February 2023 has 28 days. |
-| (empty, required) | Enter a date. |
+| `selectedDate` | The committed date (public) |
+| `isFieldValid` | Whether the field's text is a real date. Worked out from `_text` each time, never stored (public, read-only) |
+| `_text` | What the field shows. Differs from `selectedDate` while the text is invalid |
+| `_shownProblem` | The error under the field. Set on blur or Enter, not on every keystroke |
+| `_viewYear`, `_viewMonth` | The month on screen |
+| `_focusDay` | The one day in the grid that Tab lands on |
+| `_isOpen` | Whether the calendar is showing |
+| `_formDisabled` | Set by a disabled `<fieldset>`, separate from `disabled` |
+| `_popper` | The live Popper instance, or `null` |
 
-A two-digit year is rejected rather than guessed. `23` could be 1923 or 2023, and a birthday picker and a booking picker would guess differently. See [Pitfalls: rollover](pitfalls.md#silent-rollover) for why the day check exists at all.
+When a page sets `selectedDate`, `willUpdate` syncs `_text` and the view to it, cleaning the value up to follow Rule 1. That never fires `change`, because the page made the change itself.
 
-### Picking a day
+## Typing and committing
 
-Clicking a day, or pressing Enter or Space on it, builds the value with `formatDate`, commits it, closes the calendar, and returns focus to the button. `formatDate` writes exactly the format `parseDate` accepts. The first version wrote `4/3/2023`, which the blur check then rejected and wiped. See [Pitfalls: round-tripping](pitfalls.md#output-that-fails-your-own-input).
+| When | What happens |
+|---|---|
+| Typing | `_text` updates. Once it's a complete, real date, the calendar jumps to it. Nothing commits and no error shows |
+| Blur or Enter | Empty clears the date. Valid text is rewritten as `MM/DD/YYYY` and committed. Invalid text stays, and the error shows |
+| Clicking a day | `formatDate` builds the value, it's committed, and the calendar closes with focus back on the button |
 
-### Popper lifecycle
+Validation waits for blur because half-typed text like `04/0` is never valid, and an error flashing mid-typing is noise. Native inputs wait too.
 
-[Popper](https://popper.js.org/docs/v2/) positions the calendar under the input. It needs both elements to exist when it starts.
+`formatDate` writes exactly what `parseDate` reads. The first version wrote `4/3/2023`, which the blur check then rejected. See [Pitfalls: output that fails your own input](pitfalls.md#output-that-fails-your-own-input).
+
+## Popper lifecycle
 
 ```text
-open  -> _isOpen = true, listen for document pointerdown -> await updateComplete
-      -> calendar exists -> showPopover -> createPopper -> forceUpdate -> focus the grid's tab stop
+open  -> _isOpen = true, listen for outside clicks -> wait for the render
+      -> showPopover -> createPopper -> forceUpdate -> focus a day
 close -> popper.destroy(), stop listening -> _isOpen = false -> Lit removes the calendar
-         (button click, Escape, picking a day, pointerdown outside, focus leaving the component,
-          removed from the page)
 ```
 
-- **Wait for the render.** Lit renders asynchronously. Setting `_isOpen` only schedules a render, so `createPopper` has to wait for `updateComplete`. The first version called it right away and handed Popper `null`.
-- **Re-check after the wait.** A fast open-close-open can resume the first `await` after the second open. `_open` bails if it's closed again or an instance already exists, so you never end up with two.
-- **Destroy on every close path.** Each instance listens for scroll and resize. Skipping `destroy()` leaks those listeners, one set per open.
-- **The document listener follows the same rule.** The outside-click listener is added on open and removed on every close, for the same reason Popper is destroyed.
-- **Position before focusing.** Popper places the calendar at a temporary spot and calculates the real position asynchronously. Calling `.focus()` in between scrolls the page to the temporary spot, and then the calendar jumps. `forceUpdate()` positions it synchronously, so focus lands where the calendar really is.
-- **The calendar is a popover in the top layer.** `popover="manual"` plus `showPopover()` lifts it above everything on the page, so an `overflow: hidden` parent can't clip it and no `z-index` can cover it. "Manual" means no built-in light dismiss or Escape handling; the picker already does its own. Where the popover API is missing, it renders in normal flow like before.
-- **Popper failing isn't fatal.** If `createPopper` throws, the error is logged and the calendar still shows, unpositioned, below the input.
+The calendar closes on: the button, Escape, picking a day, clicking outside, focus leaving the component, or the component leaving the page.
 
-### Keyboard and focus
+- **Wait for the render.** Setting `_isOpen` only schedules a render. Calling Popper right away hands it `null`, which is what the first version did.
+- **Re-check after waiting.** A fast open-close-open can resume the first open late. `_open` stops if it's closed again or a Popper already exists.
+- **Destroy on every close.** Each Popper listens for scroll and resize. A missed `destroy()` leaks those listeners on every open. The outside-click listener follows the same rule.
+- **Position before focusing.** Popper's first placement is async. Focusing before it lands scrolls the page to a temporary spot, so `forceUpdate()` places it first.
+- **The top layer.** `popover="manual"` and `showPopover()` lift the calendar above the whole page, so no `overflow: hidden` parent can clip it and no `z-index` can cover it. "Manual" skips the browser's own close-on-Escape and close-on-outside-click, because the picker does its own.
+- **Failures aren't fatal.** If Popper throws, the error is logged and the calendar shows unpositioned, below the field.
 
-This follows the WAI-ARIA APG **date picker combobox** pattern. The input is a `combobox` that opens a **non-modal** dialog with a grid inside it. The [date picker dialog example](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/examples/datepicker-dialog/) is the reference for the grid keys.
+## Keyboard and focus
 
-Why non-modal: the calendar follows what you type, so the field has to stay usable while the calendar is open. A modal (`aria-modal="true"`) tells screen readers to hide everything outside the dialog, which would include the field being typed in. An earlier version did exactly that.
+This follows the WAI-ARIA APG [date picker dialog](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/examples/datepicker-dialog/) example. The field is a `combobox` that opens a **non-modal** dialog. Non-modal, because you can keep typing while the calendar is open. A modal tells screen readers to hide everything outside it, including the field you're typing in. An earlier version did exactly that.
 
-| Where | Key | Does |
+The key list is in [Using: Keyboard](usage.md#keyboard).
+
+**One tab stop in the grid.** Only the `_focusDay` cell has `tabindex="0"`, and the arrow keys move it. Otherwise Tab would stop on all 30 days.
+
+| After | Focus goes to | Why |
 |---|---|---|
-| Grid | Left / Right | Previous / next day |
-| Grid | Up / Down | Same day, previous / next week |
-| Grid | Home / End | Sunday / Saturday of the current week |
-| Grid | PageUp / PageDown | Same day, previous / next month (clamped: Jan 31 goes to Feb 28/29) |
-| Grid | Shift + PageUp / PageDown | Same day, previous / next year |
-| Grid | Enter / Space | Pick the day, close, focus the button |
-| Anywhere in the calendar | Escape | Close without picking, focus the button |
-| Anywhere in the component | Tab / Shift+Tab | Normal order: field → button → month → year → grid. Tabbing out of the component closes the calendar |
-| Field or button | Down / Alt+Down | Open the calendar and focus the grid, or move into it if it's already open |
-| Field or button | Escape | Close the calendar; focus stays where it is |
+| Opening | The field's date, else today | Start where the user is |
+| Picking, or Escape in the calendar | The button | It opened the calendar. Otherwise focus falls to `<body>` and keyboard users lose their place |
+| Clicking outside, or tabbing out | Wherever the user went | They chose to leave |
+| Switching windows | Nowhere; the calendar stays open | The browser reports this as focus moving to nothing (`relatedTarget` is `null`), and closing would surprise someone who comes back |
 
-All grid moves can cross into another month or year. The dropdowns and heading follow. Moves stop at years 1 and 9999. `MM/DD/YYYY` can't write past 9999, and year 0 is 1 BC, which `Intl` calls year 1.
+**What screen readers get:** the field has `aria-expanded`, `aria-controls` and `aria-describedby` for the hint and error. The button's name includes the date ("Change date, November 3, 2026"). The grid is labeled by a hidden month and year that's announced when it changes. Column headers carry full day names, so a cell reads "Sunday, 3". The selected day has `aria-selected`, and today has `aria-current="date"`.
 
-**Roving tabindex.** Only one cell has `tabindex="0"`: the focus day. Every other cell has `-1`. Tab enters the grid at one cell, and the arrow keys move within it. Without this, Tab would stop on all 30 or so days.
+## Forms
 
-**Where focus goes:**
+The element is **form-associated**: `ElementInternals` lets it join a `<form>`, which an input inside a shadow root can't do on its own. See [Pitfalls: forms and shadow DOM](pitfalls.md#forms-and-shadow-dom).
 
-- Open: the field's date, else today, else the 1st of the month on screen
-- Pick or Escape: back to the button, since that's what opened the dialog. If it went nowhere, it would fall to `<body>` when the calendar is removed, and keyboard users would lose their place
-- Outside click, or tabbing out: left alone, because the user just chose to go somewhere else. Both close the calendar
-- Window switch: the calendar stays open. The browser reports that as focus moving to nothing (`relatedTarget` is `null`), and closing then would surprise someone who alt-tabs away and comes back
+| Piece | How |
+|---|---|
+| Value | `setFormValue` after every render: `selectedDate`, or `''` while the text is invalid |
+| Validity | Follows what's typed, so Submit is blocked even before blur. Empty and `required` gives `valueMissing`, anything else `badInput` |
+| Enter | Shadow-root inputs don't submit the outer form, so Enter commits, updates validity, and calls `requestSubmit()`, which validates like a native Enter |
+| Reset | `formResetCallback` restores the `selecteddate` attribute, the same default-vs-current split as `value` on `<input>`. No `change` |
+| Disabled | `disabled`, or `formDisabledCallback` from a `<fieldset>`. Disabled fields don't validate |
+| Restore | `formStateRestoreCallback` puts the value back on back/forward navigation |
 
-**What screen readers get:**
-
-- The field: `role="combobox"`, `aria-haspopup="dialog"`, `aria-expanded`, `aria-controls` pointing at the dialog, and `aria-describedby` for the format hint and the error
-- The button: `aria-label="Choose date"`, `aria-haspopup="dialog"`, and `aria-expanded`
-- The dialog: a label, and no `aria-modal` (see above)
-- The grid: labeled by a visually hidden month/year text. It's `aria-live`, so changing months is announced. It's a `<div>`, not a heading, so it doesn't add a heading to the host page's outline
-- Column headers: `abbr="Sunday"` and so on, so a cell reads as "Sunday, 3" instead of "Sun, 3"
-- The selected day: `aria-selected="true"`. Today: `aria-current="date"`
-
-### Forms
-
-The element is **form-associated**: it uses `ElementInternals` to take part in a `<form>` like a native input. A shadow-root input can't do that by itself. See [Pitfalls: forms and shadow DOM](pitfalls.md#forms-and-shadow-dom).
-
-- **Value:** `setFormValue(selectedDate)` after every render, so the form always submits what's committed. If the field holds text that isn't a date, it submits `''` instead, like a native date input. Otherwise `novalidate` or `form.submit()` would send the last valid date while the field shows something else
-- **Validity:** follows what's *typed*, not just what's committed. Typing `02/30/2024` and clicking Submit is blocked, even before blur. Empty and `required` gives `valueMissing`; anything else invalid gives `badInput`. The input is the anchor, so the browser's validation bubble points at it
-- **Enter submits.** An input inside a shadow root doesn't trigger the outer form's implicit submission, so Enter commits the text, updates validity, and calls `form.requestSubmit()`. `requestSubmit` (not `submit`) runs validation and fires `submit` events, like a native Enter
-- **Reset:** `formResetCallback` restores the `selecteddate` *attribute*. The attribute is the default value and the property is the current value, the same split as `value` on `<input>`. Reset doesn't fire `change`, which matches native inputs
-- **Disabled:** our own `disabled` or a disabled `<fieldset>` (`formDisabledCallback`). Disabled fields don't validate
-- **Restore:** `formStateRestoreCallback` puts the value back on back/forward navigation
-
-Where `ElementInternals` isn't supported (Safari before 16.4, and jsdom) the picker still works. It just isn't part of the form.
+Without `ElementInternals` (Safari before 16.4, jsdom), the picker works but isn't part of the form.
 
 ## Decisions
 
-Choices that might look odd, and why we made them:
+Choices that might look odd, and why.
 
-- **Keep invalid text instead of wiping it.** Wiping throws away what someone typed and gives no reason. Keeping it lets them fix one digit.
-- **`.selected` on each `<option>`, not `?selected` or `.value` on the `<select>`.** The `selected` *attribute* only sets the starting option. Once the user picks an option by hand, the browser ignores that option's attribute from then on. So after picking July and then August, typing a July date would move the grid but leave the dropdown on August. The `selected` *property* always applies. `.value` on the `<select>` doesn't work either: Lit sets it before the options inside it exist, so there's nothing to match.
-- **`live()` on the input's value.** Lit normally skips a binding whose value hasn't changed since the last render. But the user can type into the input in between, so the DOM can differ from what Lit last wrote. `live()` compares against the actual DOM value. Without it, picking the same day again would leave half-typed junk in the field.
-- **The year list is ±100 years.** It was ±500, which meant 1,001 options rebuilt on every open and "1 of 1001" to a screen reader. 201 covers birthdays and planning. `guard()` still rebuilds them only when `_viewYear` changes.
-- **The year list stretches to fit.** If someone types `01/01/0050`, the dropdown grows to include year 50. Otherwise the `<select>` would have no matching option and would show the wrong year.
-- **`setFullYear` instead of `new Date(y, m, d)`.** The constructor maps years 0-99 to 1900-1999. See [Pitfalls: two-digit years](pitfalls.md#two-digit-years).
-- **`background: Canvas`.** Popper floats the calendar over the page, so it can't be transparent. `Canvas`/`CanvasText` are CSS system colors that follow light/dark `color-scheme` without picking a palette.
-- **`type="button"` on the icon button.** A bare `<button>` inside a `<form>` submits it.
-- **`<td>` grid cells, not a `<button>` per day.** A real `<table role="grid">` gives screen readers rows and column headers for free, so a cell is announced with its weekday. The APG example does the same. Buttons in a CSS grid would need `role="row"` wrappers, and the usual trick for that (`display: contents`) has dropped ARIA roles in some browsers.
-- **No Tab trap.** A Tab trap goes with a modal dialog, and this dialog is non-modal (see [Keyboard and focus](#keyboard-and-focus)). Instead, focus leaving the component closes the calendar, so a closed calendar is never left floating over the page.
-- **The format is shown as visible text, not just the placeholder.** The placeholder disappears once you type, and screen readers don't reliably read it (WCAG 3.3.2). `Format: MM/DD/YYYY` stays visible and is linked with `aria-describedby`.
-- **A two-tone focus ring.** A `CanvasText` outline with a `Canvas` band inside it. The first version's single `Highlight` outline was invisible on the selected day, whose background is also `Highlight`, and that's the cell that gets focus when the calendar opens (WCAG 2.4.7).
-- **Sizes that shrink.** The calendar is `min(400px, 100vw - 16px)` wide, and cells are `clamp(2.75rem, 12vw, 100px)` tall. At a 320px-wide viewport (400% zoom) it fits without scrolling sideways (WCAG 1.4.10). Cells never shrink below a comfortable touch target.
-- **A minimum height on the input.** The calendar button is as tall as the input, and `min-height: 2rem` keeps it above the 24×24 minimum target size (WCAG 2.5.8).
-- **Error colors from the OS theme, plus an override.** `red` measured 4.0:1 on white and 3.9:1 on the demo's dark background, below the 4.5:1 minimum (WCAG 1.4.3). The new colors are 6.5:1 and 9.1:1. The error text sits on the host page's background, which the component can't know, so `--date-picker-error-color` lets the page fix a mismatch.
-- **Calendar text in `rem`, not `px`.** It was `16px`, which ignored both the page and the reader's browser font size (WCAG 1.4.4). `1rem` looks the same in a default browser.
-- **`font: inherit` on the input and the dropdowns.** Browsers give form controls their own small font (13.33px) instead of the page's, so the field didn't match its label and hint, and the month and year dropdowns ignored `--date-picker-font-size`.
-- **Theming through custom properties, and none for the focus ring.** Custom properties are the only page CSS that crosses the shadow boundary, and each one defaults to today's look. The two-tone focus ring stays in system colors, because a themed ring could end up the same color as the day behind it.
-- **A visible label rendered inside the component.** IDs don't cross shadow roots, so a `<label for="x">` on the page can never point at the input inside. An earlier version used `aria-label` from the `label` property. That named the input, but its default "Date" rarely matched the visible text a page put next to it, which fails WCAG 2.5.3 Label in Name for voice-control users ("click Start date"). Rendering the label inside the component means the visible text and the spoken name are the same string. It's not a `<slot>`, because browsers disagree on how `aria-labelledby` handles slotted text. See [Pitfalls: labels and shadow DOM](pitfalls.md#labels-and-shadow-dom).
-- **`delegatesFocus: true`.** `picker.focus()` focuses the input. Without it, a page's "jump to the first error" link or its own focus management does nothing.
-- **The button says the date.** With a date set, it's "Change date, November 3, 2026", so a screen-reader user who tabs past the field still hears the value (APG).
-- **`locale` changes names, not the format.** Month and weekday names come from `Intl`, cached per locale. The typed format stays MM/DD/YYYY and weeks still start on Sunday. Changing those means a different parser, so it's a separate piece of work. See [Pitfalls: format ambiguity](pitfalls.md#format-ambiguity).
-- **An invalid locale falls back, it doesn't throw.** `Intl` throws `RangeError` on a malformed tag, which would take down the render. The picker warns once and uses `en-US`.
-- **Lit and Popper are both left out of the bundle.** An app that already uses either one would otherwise ship it twice. The build went from 45.6 KB to 21.9 KB (14.4 KB to 7.2 KB gzipped).
-- **The host is as wide as the field.** The host is 280px, not the calendar's 400px. The calendar floats via Popper, centered under the field, so a page can center or align the picker like any other input.
-- **Outside clicks use `composedPath()`.** A click inside the shadow root shows up on the document with `e.target` set to the host element, so checking `e.target` can't tell the calendar from the text field. `composedPath()` lists the real elements.
-- **`pointerdown`, not `click`, for outside clicks.** It fires before focus moves, and it also covers touch and pen input.
+**Typing**
 
-## Testing
+| Choice | Why |
+|---|---|
+| Keep invalid text | Wiping it throws away what someone typed. Keeping it lets them fix one digit |
+| Validate on blur, not per keystroke | Half-typed dates are never valid, so per-keystroke errors are noise |
+| Reject two-digit years | `23` could be 1923 or 2023, and different apps would guess differently |
+| `setFullYear`, not `new Date(y, m, d)` | The constructor turns years 0-99 into 1900-1999. See [Pitfalls: two-digit years](pitfalls.md#two-digit-years) |
+| Years 1 to 9999 | `MM/DD/YYYY` can't write past 9999, and year 0 is 1 BC, which `Intl` writes as year 1 |
+| `locale` changes names, not the format | A different format needs a different parser. See [Pitfalls: format ambiguity](pitfalls.md#format-ambiguity) |
+| A bad `locale` warns instead of throwing | `Intl` throws on a malformed tag, which would break the render |
 
-```sh
-pnpm test        # vitest, specs are colocated *.spec.ts
-pnpm typecheck   # tsc over src, specs included
-pnpm build       # tsc declarations + vite library build
-```
+**Rendering**
 
-- [date-utils.spec.ts](../src/date-utils.spec.ts): leap years (including 1900/2000), rollover rejections, grid padding, year range errors, day and month stepping across DST
-- [date-picker.spec.ts](../src/date-picker.spec.ts): one test for each bug that's been fixed, the Popper lifecycle using a mocked `@popperjs/core` that counts `createPopper` and `destroy` calls, every key in the table above, focus placement, ARIA attributes, error messages, locale and strings
-- [strings.spec.ts](../src/strings.spec.ts): string overrides merge without losing defaults
-- [e2e/date-picker.e2e.ts](../e2e/date-picker.e2e.ts): Playwright in real Chromium, for what jsdom can't do: axe WCAG 2.2 AA scans (closed, open, error showing, light and dark), the focus ring on the selected day, styling custom properties and their defaults, 320px reflow, escaping an `overflow: hidden` parent, the 24×24 button, no page jump on open, `delegatesFocus`, label click, and form submit, required, reset, and disabled `<fieldset>`. [e2e/fixture.html](../e2e/fixture.html) is the test page
+| Choice | Why |
+|---|---|
+| `.selected` property on each `<option>` | The `selected` attribute stops working once the user picks an option by hand. `.value` on the `<select>` runs before the options exist |
+| `live()` on the field's value | The user types between renders, so Lit's last value can be stale. `live()` checks the real one |
+| Year list of ±100 years | ±500 meant 1,001 options and "1 of 1001" to a screen reader. `guard()` rebuilds it only when the year changes |
+| The year list stretches | A typed year outside the list is added, or the dropdown would show the wrong year |
+| `<td>` cells, not a `<button>` per day | A real table gives screen readers rows and column headers for free |
+| `type="button"` on the icon button | A bare `<button>` in a form submits it |
+| `pointerdown` and `composedPath()` for outside clicks | `pointerdown` fires before focus moves and covers touch. `e.target` is always the host from outside the shadow root; `composedPath()` sees the real element |
 
-```sh
-pnpm exec playwright install chromium   # once, downloads the browser
-pnpm test:e2e                           # starts the Vite dev server itself
-```
+**Accessibility**
 
-Every accessibility fix has been checked by breaking it on purpose and watching a test fail. Removing `forceUpdate` makes the page jump from y=1830 to y=64 on open. The old `red` error color fails axe's `color-contrast` rule. The old single-color focus ring fails the focus-ring test. The old `16px` calendar text fails the rem test. Without `font: inherit`, the input stays at 13.33px and fails the font test.
+| Choice | Why |
+|---|---|
+| A label rendered inside the component | A page's `<label for>` can't reach inside a shadow root. One string for the visible and spoken name passes WCAG 2.5.3. Not a `<slot>`, because browsers disagree on slotted label text. See [Pitfalls: labels](pitfalls.md#labels-and-shadow-dom) |
+| The format as visible text | Placeholders vanish as you type and aren't read reliably (WCAG 3.3.2) |
+| `delegatesFocus` | `picker.focus()` reaches the field, so "jump to the error" links work |
+| No Tab trap | Traps are for modal dialogs. Leaving the component closes the calendar instead |
+| A two-tone focus ring | One color vanished on the selected day, which is where focus lands (WCAG 2.4.7) |
+| Error colors measured, plus an override | `red` measured 4.0:1, below the 4.5:1 minimum (WCAG 1.4.3). The page's background is unknown, so `--date-picker-error-color` lets it adjust |
+| Sizes that shrink | At a 320px viewport (400% zoom) it fits without sideways scrolling (WCAG 1.4.10) |
+| `min-height` on the field | Keeps the button above the 24×24 minimum target (WCAG 2.5.8) |
 
-Things to know:
+**Styling and build**
 
-- **jsdom, not happy-dom.** happy-dom's `<select>` reports the wrong `value` when an option has `selected`. The component was correct, but the tests failed.
-- **The timezone is pinned to `America/Sao_Paulo`** in `vitest.config.ts`. Brazil used to start DST at midnight, so on 2018-11-04 local midnight didn't exist. Date math that gets that day right will work in any timezone. A test checks that the pin is in effect, so it can't silently stop working.
-- **Today is frozen.** Specs fake `Date` to Nov 24 2026, so "opens on the current month" doesn't break on the 1st of each month.
-- **`@types/node` is pinned to 18.11.** Vitest pulls in the latest `@types/node`, which uses syntax TypeScript 4.9 can't parse. Unpin it when TypeScript is upgraded.
-- **jsdom doesn't do layout, color, focus rings, form association, or `delegatesFocus`.** Those are tested in Playwright instead.
-- **The e2e files aren't type-checked.** Playwright's type declarations need a newer TypeScript than 4.9. Playwright compiles the specs itself, so they run, but `pnpm typecheck` skips `e2e/`. Upgrading TypeScript would fix this, and would let `@types/node` be unpinned.
-- **`axe` checks rules, not experience.** A clean axe run doesn't prove the picker is pleasant with a screen reader. That still needs a person.
-- **`tsconfig.spec.json` exists** because the main tsconfig emits declarations only, and spec files shouldn't end up in `types/`.
+| Choice | Why |
+|---|---|
+| Custom properties for theming | The only page CSS that crosses the shadow boundary. Each defaults to the original look |
+| No property for the focus ring | A themed ring could match the day behind it and vanish |
+| `rem`, not `px`, for calendar text | `16px` ignored the reader's browser font size (WCAG 1.4.4) |
+| `font: inherit` on the field and dropdowns | Form controls use their own small 13.33px font, not the page's |
+| System colors (`Canvas`, `Highlight`) as defaults | They follow light and dark mode without a palette |
+| The host is as wide as the field | The calendar floats, so the page can align the picker like any input |
+| TypeScript 6, not 7 | 7 is the native compiler rewrite. Tools this project will need, like `vue-tsc`, build on the JavaScript compiler's API |
+| Lit and Popper left out of the bundle | An app that already has them would ship them twice. 45.6 KB became 21.9 KB, and 19.6 KB after the Vite 8 upgrade |
 
 ## Navigation
 
-- **[Index](INDEX.md)** - Overview, scope, next steps
+- **[Index](INDEX.md)** - Start here
+- **[Using the date picker](usage.md)** - Properties, typing, keyboard, forms, styling
+- **[Testing](testing.md)** - Running and trusting the tests
 - **[Pitfalls](pitfalls.md)** - Problems most date pickers hit

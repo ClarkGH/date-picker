@@ -6,7 +6,7 @@ process.env.TZ = 'America/Sao_Paulo';
 
 export default defineConfig({
   test: {
-    // Not happy-dom: its <select> reports the wrong value (docs/date-picker.md#testing)
+    // Not happy-dom: its <select> reports the wrong value (docs/testing.md#things-to-know)
     environment: 'jsdom',
     restoreMocks: true,
     include: ['src/**/*.spec.ts'],

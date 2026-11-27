@@ -8,10 +8,10 @@ Each phase ends with a check: something you can run that proves the phase is don
 
 ## Where we are
 
-**Parked 2026-11-24, before Phase 0.** Nothing has been built. It may never be picked up again. Start with the Phase 0 decisions if it is.
+**Restarted 2026-11-26.** Parked 2026-11-24, before Phase 0. The custom properties from Phase 5 and the docs split (usage, how it works, testing) were done in between.
 
-- [ ] Phase 0: decisions
-- [ ] Phase 1: toolchain upgrade (Lit 3, TypeScript 5)
+- [ ] Phase 0: decisions. In progress: 6 of 8 answered 2026-11-26. Package name and tag name are open.
+- [x] Phase 1: toolchain upgrade (2026-11-26). Done before Phase 0 finished, by Clark's call: nothing in it depends on the names. Lit 3.3, TypeScript 6.0, Vite 8, Vitest 5
 - [ ] Phase 2: package shape
 - [ ] Phase 3: consumer apps (Lit, Vue, React 19)
 - [ ] Phase 4: Custom Elements Manifest and types
@@ -32,18 +32,25 @@ Each phase ends with a check: something you can run that proves the phase is don
 
 - [ ] **Package name.** Recommended: a scoped name (`@<npm-user>/date-picker`), which can't clash with anyone else's. Check any unscoped name with `pnpm view <name>`.
 - [ ] **Tag name.** `date-picker` is generic, and defining the same custom element name twice throws. Two libraries using that name, or two copies of this one, will crash. Recommended: a short prefix of your own (`<prefix>-date-picker`).
-- [ ] **Registration.** (a) Importing the package registers the tag, like today. (b) The main entry exports the class without registering it, and `/define` registers it. Recommended: **(b) plus a guard** (`if (!customElements.get(tag))`), so an app can also register the class under its own tag name.
-- [ ] **Event name.** Keep `change`, or rename it to `date-change`. `change` reads naturally in Vue and Lit, but React treats `onChange` specially, and it's unclear how React 19 maps it onto a custom element. [VERIFY] Phase 3's React 19 app settles this. Decide here, or wait until Phase 3 and decide then.
-- [ ] **Oldest React supported.** React 19 only (no adapter needed), or React 18 as well (Phase 6 builds an `@lit/react` wrapper). Recommended: support 18. Plenty of apps are still on it, and the wrapper is small.
-- [ ] **Vue `v-model`.** Docs only (`:selectedDate` plus `@change`), or ship a tiny Vue wrapper component that supports `v-model`. Recommended: docs plus a types file first, and the wrapper only if the docs version feels clunky in the example app.
-- [ ] **Version.** Publish as `0.x` while the API settles, or go straight to `1.0.0`. Recommended: `0.6.0` first, and `1.0.0` once the example apps have been used for a while.
-- [ ] **Who writes it.** Clark writes it and Claude reviews, Clark writes the seams and Claude fills in the bodies, or Claude writes it and Clark reviews.
+- [x] **Registration.** *Decided 2026-11-26: (b) plus a guard.* (a) Importing the package registers the tag, like today. (b) The main entry exports the class without registering it, and `/define` registers it. Recommended: **(b) plus a guard** (`if (!customElements.get(tag))`), so an app can also register the class under its own tag name.
+- [x] **Event name.** *Decided 2026-11-26: keep `change` for now, and settle it with the React 19 app in Phase 3.* Keep `change`, or rename it to `date-change`. `change` reads naturally in Vue and Lit, but React treats `onChange` specially, and it's unclear how React 19 maps it onto a custom element. [VERIFY] Phase 3's React 19 app settles this. Decide here, or wait until Phase 3 and decide then.
+- [x] **Oldest React supported.** *Decided 2026-11-26: React 18, with the `@lit/react` wrapper.* React 19 only (no adapter needed), or React 18 as well (Phase 6 builds an `@lit/react` wrapper). Recommended: support 18. Plenty of apps are still on it, and the wrapper is small.
+- [x] **Vue `v-model`.** *Decided 2026-11-26: docs and a types file first; a wrapper only if needed.* Docs only (`:selectedDate` plus `@change`), or ship a tiny Vue wrapper component that supports `v-model`. Recommended: docs plus a types file first, and the wrapper only if the docs version feels clunky in the example app.
+- [x] **Version.** *Decided 2026-11-26: `0.6.0` first.* Publish as `0.x` while the API settles, or go straight to `1.0.0`. Recommended: `0.6.0` first, and `1.0.0` once the example apps have been used for a while.
+- [x] **Who writes it.** *Decided 2026-11-26: Claude writes it, Clark reviews.* Clark writes it and Claude reviews, Clark writes the seams and Claude fills in the bodies, or Claude writes it and Clark reviews.
 
 **Check:** every box above has an answer written next to it.
 
 ## Phase 1: toolchain upgrade
 
-Already on the [TBD list](docs/INDEX.md#tbd--next-steps). Doing it now means the published `peerDependencies` range covers the current Lit release from the start.
+*Done 2026-11-26.* Lit 3.3.3, TypeScript 6.0.3, Vite 8.4, Vitest 5.1, and `@types/node` 26, unpinned. Notes:
+- TypeScript went to 6.0, not 7.0. 7 is the native compiler rewrite, and the tools later phases need, like `vue-tsc`, build on the JavaScript compiler's API.
+- TypeScript 6 needed `rootDir` set explicitly, or the type declarations would have moved to `types/src/`. It also needed `moduleResolution: "Bundler"`, because the old `"Node"` setting is deprecated.
+- Type-checking `e2e/` found an unused parameter in a test helper straight away.
+- The bundle went from 20.75 KB to 19.57 KB (6.32 KB gzipped) with Vite 8's new bundler. Lit and Popper are still left out of it.
+- `pnpm audit` is clean. All the dev-tool vulnerabilities are gone.
+
+Already on the [TBD list](docs/INDEX.md#next-steps). Doing it now means the published `peerDependencies` range covers the current Lit release from the start.
 
 - Lit 2 → 3. [VERIFY] against Lit's upgrade guide that `experimentalDecorators` with `useDefineForClassFields: false` is still supported (I believe it is).
 - TypeScript 4.9 → 5.x, unpin `@types/node`, and type-check the e2e specs.
@@ -88,13 +95,13 @@ Build these before the adapters, so every later phase can be proven in every fra
 - JSDoc tags on the class: `@fires change`, `@cssprop --date-picker-error-color`, plus the `@csspart` tags from Phase 5.
 - Add the typed event to the global event map, so `addEventListener('change', e => e.detail.value)` is typed in plain TS and Lit.
 
-**Check:** `custom-elements.json` lists every member in the [API table](docs/date-picker.md#api). In VS Code, hovering the tag in the Lit and Vue example apps shows its docs.
+**Check:** `custom-elements.json` lists every member in the [API table](docs/usage.md#properties). In VS Code, hovering the tag in the Lit and Vue example apps shows its docs.
 
 ## Phase 5: styling API
 
 Shadow DOM blocks page CSS. Without hooks, every consumer forks the component to change one color.
 
-*Custom properties done 2026-11-25* (see [Styling](docs/date-picker.md#styling)). The `::part()` names are what's left.
+*Custom properties done 2026-11-25* (see [Styling](docs/usage.md#styling)). The `::part()` names are what's left.
 
 - `part="…"` on the label, input, button, hint, error, dialog, header, grid, and day cells. Day cells also get state parts (`day selected`, `day today`, `day outside`).
 - Custom properties for the things people change first: accent color, border color, radius, font, and calendar background. Each one defaults to what the component looks like today.
