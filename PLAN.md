@@ -14,8 +14,8 @@ Each phase ends with a check: something you can run that proves the phase is don
 - [x] Phase 1: toolchain upgrade (2026-11-26). Done before Phase 0 finished, by Clark's call: nothing in it depends on the names. Lit 3.3, TypeScript 6.0, Vite 8, Vitest 5
 - [x] Phase 2: package shape (2026-11-26)
 - [x] Phase 3: consumer apps (2026-11-27)
-- [ ] Phase 4: Custom Elements Manifest and types
-- [ ] Phase 5: styling API
+- [x] Phase 4: Custom Elements Manifest and types (2026-11-27)
+- [x] Phase 5: styling API (2026-11-27)
 - [ ] Phase 6: React adapter
 - [ ] Phase 7: Vue polish
 - [ ] Phase 8: SSR safety
@@ -99,6 +99,13 @@ Build these before the adapters, so every later phase can be proven in every fra
 
 ## Phase 4: Custom Elements Manifest and types
 
+*Done 2026-11-27.* `pnpm analyze` (the last step of `pnpm build`) writes `custom-elements.json`, and [check-manifest.mjs](scripts/check-manifest.mjs) fails the build if it disagrees with [usage.md](docs/usage.md). Fixes the first manifest needed:
+- The tag was recorded as `TAG_NAME`. `@tagname` fixes the class, and a config plugin fixes the registration entry.
+- The attribute came out as `selectedDate`. It's now `attribute: 'selecteddate'`, which Lit already did.
+- 45 private members and the form callbacks were listed. A plugin and `@internal` drop them.
+
+The typed event comes from a `DatePickerEventMap` merged into the class, and [types.spec.ts](src/types.spec.ts) proves it fails when broken. **The VS Code hover part of the check was replaced.** Plain VS Code HTML hovers need a different file format (`html.customData`), and the Vue side is Phase 7's template types. The build-time check covers what the manifest says. Seeing it in an editor is a manual try with lit-plugin.
+
 - `@custom-elements-manifest/analyzer` (dev dependency) writes `custom-elements.json`. Add `"customElements": "custom-elements.json"` to package.json, and put the file in `files`.
 - JSDoc tags on the class: `@fires change`, `@cssprop --date-picker-error-color`, plus the `@csspart` tags from Phase 5.
 - Add the typed event to the global event map, so `addEventListener('change', e => e.detail.value)` is typed in plain TS and Lit.
@@ -109,7 +116,7 @@ Build these before the adapters, so every later phase can be proven in every fra
 
 Shadow DOM blocks page CSS. Without hooks, every consumer forks the component to change one color.
 
-*Custom properties done 2026-11-25* (see [Styling](docs/usage.md#styling)). The `::part()` names are what's left.
+*Custom properties done 2026-11-25. Parts done 2026-11-27:* 15 parts (`label`, `input`, `button`, `hint`, `error`, `calendar`, `header`, `month`, `year`, `grid`, `weekday`, `day`, `selected`, `today`, `empty`), each with `@csspart`, listed in [usage.md](docs/usage.md#parts), and checked against the manifest. A fixture picker is restyled only with `::part()`, and each example app with a custom property and a `::part()` rule.
 
 - `part="…"` on the label, input, button, hint, error, dialog, header, grid, and day cells. Day cells also get state parts (`day selected`, `day today`, `day outside`).
 - Custom properties for the things people change first: accent color, border color, radius, font, and calendar background. Each one defaults to what the component looks like today.

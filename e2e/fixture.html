@@ -6,6 +6,15 @@
     <title>date-picker e2e fixture</title>
     <link rel="stylesheet" href="/src/index.css" />
     <script type="module" src="/src/define.ts"></script>
+    <style>
+      /* Restyled only through ::part(), for the parts test */
+      #parts::part(input) { border: 3px solid rgb(0, 0, 139); }
+      #parts::part(calendar) { box-shadow: rgb(0, 0, 0) 0px 4px 12px 0px; }
+      #parts::part(weekday) { text-transform: uppercase; }
+      #parts::part(day selected) { border-radius: 50%; }
+      #parts::part(day today) { text-decoration: underline; }
+      #parts::part(empty) { border-color: transparent; }
+    </style>
   </head>
   <!-- Test-only page: a form, a fieldset, and a spacer so there's room to scroll -->
   <body>
@@ -35,6 +44,7 @@
           --consistent-date-picker-accent-text: rgb(255, 255, 255);
         "
       ></consistent-date-picker>
+      <consistent-date-picker id="parts" label="Parts date" selectedDate="11/03/2026"></consistent-date-picker>
       <div id="clipper" style="overflow: hidden; height: 120px; position: relative; z-index: 0">
         <consistent-date-picker id="clipped" label="Clipped date"></consistent-date-picker>
       </div>

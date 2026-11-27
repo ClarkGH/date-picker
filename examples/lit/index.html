@@ -3,6 +3,16 @@
   <head>
     <meta charset="UTF-8" />
     <title>consistent-date-picker in Lit</title>
+    <style>
+      /* Restyled the way an app would: a custom property and a ::part() rule */
+      consistent-date-picker {
+        --consistent-date-picker-accent: rgb(0, 100, 0);
+        --consistent-date-picker-accent-text: rgb(255, 255, 255);
+      }
+      consistent-date-picker::part(input) {
+        border: 3px solid rgb(0, 100, 0);
+      }
+    </style>
   </head>
   <body>
     <demo-app></demo-app>

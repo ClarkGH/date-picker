@@ -26,6 +26,13 @@ test('the picker works the same in this framework', async ({ page }) => {
     await expect(changes).toHaveText('count: 1, last: 11/03/2026');
   });
 
+  await test.step("the app's ::part() rule and custom property apply", async () => {
+    await expect(input).toHaveCSS('border-top-width', '3px');
+    await input.press('ArrowDown');
+    await expect(page.locator('#picker td[aria-selected="true"]')).toHaveCSS('background-color', 'rgb(0, 100, 0)');
+    await input.press('Escape');
+  });
+
   await test.step('picking a day fires change once', async () => {
     await input.press('ArrowDown');
     await expect(page.locator('#picker td[tabindex="0"]')).toBeFocused();

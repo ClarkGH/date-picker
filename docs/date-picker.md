@@ -25,6 +25,7 @@ The core idea: what the field *shows* and the date that's *committed* are two se
 | [strings.ts](../src/strings.ts) | Every piece of UI text, and how overrides merge |
 | [index.ts](../src/index.ts) | The main entry: exports the class and types, registers nothing |
 | [define.ts](../src/define.ts) | The `/define` entry: registers the tag, safely, if it isn't already taken |
+| [custom-elements-manifest.config.mjs](../custom-elements-manifest.config.mjs) | How `pnpm analyze` builds `custom-elements.json` from the class's JSDoc |
 
 ## Rules
 
@@ -161,6 +162,10 @@ Choices that might look odd, and why.
 |---|---|
 | Custom properties for theming | The only page CSS that crosses the shadow boundary. Each defaults to the original look |
 | No property for the focus ring | A themed ring could match the day behind it and vanish |
+| `::part()` names for the pieces | Custom properties only cover what we chose to expose. Parts let a page restyle anything else, without forking |
+| States as extra part names (`day selected`) | `::part()` can't read attributes like `aria-selected`, so the state has to be in the part name |
+| A `part` on blank cells (`empty`) | A borderless or compact grid needs to restyle them too |
+| Parts can still remove the focus ring | CSS can't stop `::part(day):focus-visible` from overriding it. The docs ask pages to keep one |
 | `rem`, not `px`, for calendar text | `16px` ignored the reader's browser font size (WCAG 1.4.4) |
 | `font: inherit` on the field and dropdowns | Form controls use their own small 13.33px font, not the page's |
 | System colors (`Canvas`, `Highlight`) as defaults | They follow light and dark mode without a palette |
@@ -174,6 +179,10 @@ Choices that might look odd, and why.
 | `define` checks before registering | Registering a tag twice throws, which would crash a page that loads two copies. It warns instead |
 | `.js` on relative imports in `.ts` files | TypeScript copies import paths into the type files as written. Projects using `node16` or `nodenext` resolution need the extension, or the types fail to load |
 | `public/` isn't copied into `dist/` | It holds the demo page's assets, not the library's |
+| A generated `custom-elements.json` | The standard file editors and docs tools read to learn a tag's properties, events and CSS properties. It's built from JSDoc tags (`@tagname`, `@fires`, `@cssprop`), so the code is the source |
+| The manifest is checked against the docs | A property added to the code but not [usage.md](usage.md), or the other way around, fails the build |
+| `attribute: 'selecteddate'` written out | Lit already lowercases it. Writing it out makes the manifest list the attribute HTML actually accepts |
+| Private members and `@internal` left out of the manifest | Editors would otherwise suggest `_viewYear` and the form callbacks as if they were API |
 
 ## Navigation
 

@@ -24,7 +24,7 @@ The native input looks different in every browser and on every OS, and its forma
 
 ## Next steps
 
-- Test with real screen readers (NVDA, VoiceOver). axe checks rules and attributes, not what's actually announced
+- Test with NVDA and VoiceOver. Orca on Linux was tested by hand on 2026-11-27 and works well. axe checks rules and attributes, not what's actually announced
 - A typed format and week start that follow the locale (see [Pitfalls: format ambiguity](pitfalls.md#format-ambiguity))
 - Run the browser tests in Firefox and WebKit too. Only Chromium runs now
 

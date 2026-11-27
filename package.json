@@ -24,8 +24,10 @@
   ],
   "files": [
     "dist",
-    "types"
+    "types",
+    "custom-elements.json"
   ],
+  "customElements": "custom-elements.json",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ClarkGH/date-picker.git"
@@ -41,11 +43,12 @@
   ],
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "tsc && vite build && pnpm analyze",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.spec.json",
     "test:e2e": "playwright test",
-    "test:consumers": "node scripts/test-consumers.mjs"
+    "test:consumers": "node scripts/test-consumers.mjs",
+    "analyze": "cem analyze && node scripts/check-manifest.mjs"
   },
   "peerDependencies": {
     "lit": "^3.0.0"
@@ -55,6 +58,7 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "4.14.1",
+    "@custom-elements-manifest/analyzer": "^0.11.0",
     "@playwright/test": "1.65.1",
     "@types/node": "^26.6.7",
     "jsdom": "^31.0.1",

@@ -11,6 +11,7 @@
 - [Keyboard](#keyboard)
 - [Forms](#forms)
 - [Styling](#styling)
+- [Editor support](#editor-support)
 - [Limits](#limits)
 - [Navigation](#navigation)
 
@@ -31,6 +32,15 @@ import 'consistent-date-picker/define'; // registers <consistent-date-picker>
 ```js
 const picker = document.querySelector('consistent-date-picker');
 picker.addEventListener('change', (e) => console.log(e.detail.value)); // "04/03/2023"
+```
+
+### A different tag name
+
+Importing `define` is optional. The main entry only exports the class, so you can register it under your own tag. Register a subclass, because one class can't be registered under two tags:
+
+```js
+import { DatePicker } from 'consistent-date-picker';
+customElements.define('my-date-field', class extends DatePicker {});
 ```
 
 ## In a framework
@@ -154,16 +164,41 @@ consistent-date-picker {
 
 The text field uses the page's font. Set `font-family` or `font-size` on the `consistent-date-picker` element to change it.
 
-The default colors switch with light and dark mode on their own. A color you set doesn't switch, so set it again inside a `prefers-color-scheme` media query if you need it to. If you set the colors, checking their contrast is up to you. The focus ring can't be themed, so it can never blend into the day behind it.
+The default colors switch with light and dark mode on their own. A color you set doesn't switch, so set it again inside a `prefers-color-scheme` media query if you need it to. If you set the colors, checking their contrast is up to you. There's no property for the focus ring, so it can't blend into the day behind it by accident.
 
-### A different tag name
+### Parts
 
-Importing `define` is optional. The main entry only exports the class, so you can register it under your own tag. Register a subclass, because one class can't be registered under two tags:
+For anything the properties don't cover, style the pieces directly with `::part()`:
 
-```js
-import { DatePicker } from 'consistent-date-picker';
-customElements.define('my-date-field', class extends DatePicker {});
+```css
+consistent-date-picker::part(input) { border-radius: 6px; }
+consistent-date-picker::part(day selected) { border-radius: 50%; }
+consistent-date-picker::part(day):hover { background: #eee; }
 ```
+
+| Part | The piece |
+|---|---|
+| `label` | The text above the field |
+| `input` | The text field |
+| `button` | The calendar button |
+| `hint` | The format hint under the field |
+| `error` | The error message under the field |
+| `calendar` | The calendar popup |
+| `header` | The row holding the month and year dropdowns |
+| `month` | The month dropdown |
+| `year` | The year dropdown |
+| `grid` | The table of days |
+| `weekday` | A day-name column header |
+| `day` | A day |
+| `selected` | The selected day, alongside `day`: `::part(day selected)` |
+| `today` | Today, alongside `day`: `::part(day today)` |
+| `empty` | A blank cell before the 1st or after the last day |
+
+`::part()` styles one element. It can't reach inside a part, so `::part(calendar) td` doesn't work; use `::part(day)`. Pseudo-classes work, like `:hover` and `:focus-visible`. **If you restyle `:focus-visible`, keep a clearly visible ring**, because keyboard users need it to see where they are (WCAG 2.4.7).
+
+## Editor support
+
+The package ships `custom-elements.json`, the standard description of the tag. Editor plugins that read it, like lit-plugin for Lit templates, can autocomplete the properties, events and CSS properties. In TypeScript, `addEventListener('change', ...)` knows `event.detail.value` is a string.
 
 ## Limits
 

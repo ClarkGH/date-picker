@@ -920,3 +920,33 @@ describe('year list', () => {
   });
 });
 
+
+describe('styling parts', () => {
+  const partsOf = (el: Picker, name: string) => Array.from(el.shadowRoot!.querySelectorAll(`[part~="${name}"]`));
+
+  it('names every styleable piece of the field', async () => {
+    const el = await mount();
+    for (const name of ['label', 'input', 'button', 'hint', 'error']) expect(partsOf(el, name), name).toHaveLength(1);
+  });
+
+  it('names the calendar pieces, and marks the selected day, today and blank cells', async () => {
+    const el = await mount({ selectedDate: '11/03/2026' }); // today is frozen at 11/24/2026
+    await openCalendar(el);
+
+    for (const name of ['calendar', 'header', 'month', 'year', 'grid']) expect(partsOf(el, name), name).toHaveLength(1);
+    expect(partsOf(el, 'weekday')).toHaveLength(7);
+    expect(partsOf(el, 'day')).toHaveLength(30);
+    expect(partsOf(el, 'empty')).toHaveLength(5); // November 2026 starts on a Sunday: 30 days in 35 cells
+    expect(partsOf(el, 'selected').map((c) => c.textContent)).toEqual(['3']);
+    expect(partsOf(el, 'today').map((c) => c.textContent)).toEqual(['24']);
+    expect(partsOf(el, 'selected')[0].getAttribute('part')).toBe('day selected');
+  });
+
+  it('moves the selected part with the typed date', async () => {
+    const el = await mount({ selectedDate: '11/03/2026' });
+    await openCalendar(el);
+    await typeWithoutBlur(el, '11/24/2026');
+
+    expect(partsOf(el, 'selected')[0].getAttribute('part')).toBe('day selected today');
+  });
+});

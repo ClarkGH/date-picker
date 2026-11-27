@@ -21,6 +21,8 @@ pnpm test:consumers                    # packs the library and tests it in the L
 | [date-picker.spec.ts](../src/date-picker.spec.ts) | One test per fixed bug, the Popper lifecycle (with Popper mocked), every key, focus, ARIA, errors, values set from outside, locale and strings |
 | [strings.spec.ts](../src/strings.spec.ts) | Overrides merge without losing defaults |
 | [define.spec.ts](../src/define.spec.ts) | `/define` registers the tag once, a second copy warns instead of crashing, and the main entry registers nothing |
+| [types.spec.ts](../src/types.spec.ts) | Type-level checks, enforced by `pnpm typecheck`: `change` listeners get `detail.value`, the tag maps to the class, `isFieldValid` is read-only |
+| [check-manifest.mjs](../scripts/check-manifest.mjs) | Runs at the end of `pnpm build`. Fails if `custom-elements.json` and the tables in [usage.md](usage.md) disagree on the tag, properties, events, CSS properties or parts |
 | [date-picker.e2e.ts](../e2e/date-picker.e2e.ts) | axe WCAG 2.2 AA scans in light and dark, the focus ring, styling, 320px reflow, escaping `overflow: hidden`, the 24×24 button, no page jump on open, focus, and real form submit, reset and validation |
 
 [e2e/fixture.html](../e2e/fixture.html) is the page the browser tests run against.
@@ -37,7 +39,7 @@ pnpm test:consumers                    # packs the library and tests it in the L
 | The timezone is pinned to `America/Sao_Paulo` | Brazil's DST started at midnight, so 2018-11-04 had no midnight. Date math that passes there passes anywhere. A test checks the pin works |
 | "Today" is frozen at Nov 24 2026 | Otherwise "opens on this month" breaks on the 1st |
 | jsdom has no layout, colors, focus rings, form association, `delegatesFocus` or popovers | Those are tested in Playwright |
-| `axe` checks rules, not experience | A clean run doesn't prove it's pleasant with a screen reader. That needs a person |
+| `axe` checks rules, not experience | A clean run doesn't prove it's pleasant with a screen reader. That needs a person. Orca was tested by hand on 2026-11-27; NVDA and VoiceOver haven't been yet |
 | `tsconfig.spec.json` exists | The main config emits declarations, and specs shouldn't land in `types/` |
 
 ## Navigation

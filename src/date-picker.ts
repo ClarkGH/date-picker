@@ -35,18 +35,44 @@ export type DatePickerChangeEvent = CustomEvent<{ value: string }>;
 
 /**
  * A text input plus a calendar popup (WAI-ARIA APG date picker combobox).
- * Value is MM/DD/YYYY or ''. Fires `change` with `detail.value` when the value changes.
- * Form-associated: give it a `name` and it submits with its <form>.
+ * Value is MM/DD/YYYY or ''. Form-associated: give it a `name` and it submits with its <form>.
  * Registered by define.ts. How it works and why: docs/date-picker.md
+ *
+ * @tagname consistent-date-picker
+ * @fires {DatePickerChangeEvent} change - The user changed the date. `event.detail.value` is the new value
+ * @cssprop [--consistent-date-picker-font-size=1rem] - Calendar text, including the month and year dropdowns
+ * @cssprop [--consistent-date-picker-background=Canvas] - Calendar background
+ * @cssprop [--consistent-date-picker-text-color=CanvasText] - Calendar text color
+ * @cssprop [--consistent-date-picker-border-color=currentColor] - Calendar and cell borders
+ * @cssprop [--consistent-date-picker-radius=0] - Calendar corners
+ * @cssprop [--consistent-date-picker-accent=Highlight] - Selected day background
+ * @cssprop [--consistent-date-picker-accent-text=HighlightText] - Selected day text
+ * @cssprop [--consistent-date-picker-error-color=#b3261e] - Error text and invalid outline. #f2b8b5 in dark mode
+ * @csspart label - The text above the field
+ * @csspart input - The text field
+ * @csspart button - The calendar button
+ * @csspart hint - The format hint under the field
+ * @csspart error - The error message under the field
+ * @csspart calendar - The calendar popup
+ * @csspart header - The row holding the month and year dropdowns
+ * @csspart month - The month dropdown
+ * @csspart year - The year dropdown
+ * @csspart grid - The table of days
+ * @csspart weekday - A day-name column header
+ * @csspart day - A day. Also `selected` on the selected day, and `today` on today
+ * @csspart selected - The selected day, alongside `day`
+ * @csspart today - Today, alongside `day`
+ * @csspart empty - A blank cell before the 1st or after the last day
  */
 export class DatePicker extends LitElement {
+  /** @internal */
   static formAssociated = true;
 
-  /** delegatesFocus: `picker.focus()` and label clicks reach the inner input. */
+  /** @internal delegatesFocus: `picker.focus()` and label clicks reach the inner input. */
   static shadowRootOptions: ShadowRootInit = { ...LitElement.shadowRootOptions, delegatesFocus: true };
 
   /** The committed value: always a valid MM/DD/YYYY string, or '' when empty. */
-  @property({ type: String })
+  @property({ type: String, attribute: 'selecteddate' })
   selectedDate = '';
 
   /** True when the input holds a real date. False when empty or invalid. Read-only. */
@@ -166,7 +192,7 @@ export class DatePicker extends LitElement {
     }
   }
 
-  /** The `selecteddate` attribute is the default value, like `value` on a native input. */
+  /** @internal The `selecteddate` attribute is the default value, like `value` on a native input. */
   formResetCallback() {
     this.selectedDate = this.getAttribute('selecteddate') ?? '';
     // Also runs when the value didn't change, to clear any typed text
@@ -174,10 +200,12 @@ export class DatePicker extends LitElement {
     this._shownProblem = null;
   }
 
+  /** @internal */
   formDisabledCallback(disabled: boolean) {
     this._formDisabled = disabled;
   }
 
+  /** @internal */
   formStateRestoreCallback(state: string | File | FormData | null) {
     if (typeof state === 'string') this.selectedDate = state;
   }
@@ -421,12 +449,15 @@ export class DatePicker extends LitElement {
 
   private _renderDay(day: number, selected: CalendarDate | null, now: CalendarDate) {
     const date = { year: this._viewYear, month: this._viewMonth, day };
+    const isSelected = isSameDate(date, selected);
+    const isToday = isSameDate(date, now);
     return html`
       <td
         class="day"
+        part=${['day', isSelected && 'selected', isToday && 'today'].filter(Boolean).join(' ')}
         tabindex=${day === this._focusDay ? 0 : -1}
-        aria-selected=${isSameDate(date, selected) ? 'true' : nothing}
-        aria-current=${isSameDate(date, now) ? 'date' : nothing}
+        aria-selected=${isSelected ? 'true' : nothing}
+        aria-current=${isToday ? 'date' : nothing}
         @click=${() => this._selectDay(day)}
       >${day}</td>
     `;
@@ -450,34 +481,35 @@ export class DatePicker extends LitElement {
       <div
         id="calendar"
         class="date-picker"
+        part="calendar"
         popover="manual"
         role="dialog"
         aria-label=${strings.dialog}
         @keydown=${this._onCalendarKeydown}
       >
-        <div class="month-year__picker">
-          <select id="month" aria-label=${strings.month} @change=${this._onMonthChange}>
+        <div class="month-year__picker" part="header">
+          <select id="month" part="month" aria-label=${strings.month} @change=${this._onMonthChange}>
             ${months.map(
               (name, i) => html`<option value=${i + 1} .selected=${i + 1 === this._viewMonth}>${name}</option>`,
             )}
           </select>
-          <select id="year" aria-label=${strings.year} @change=${this._onYearChange}>
+          <select id="year" part="year" aria-label=${strings.year} @change=${this._onYearChange}>
             ${guard([this._viewYear], () => this._renderYearOptions())}
           </select>
         </div>
         <div id="calendar-heading" class="sr-only" aria-live="polite">
           ${months[this._viewMonth - 1]} ${this._viewYear}
         </div>
-        <table role="grid" aria-labelledby="calendar-heading" @keydown=${this._onGridKeydown}>
+        <table part="grid" role="grid" aria-labelledby="calendar-heading" @keydown=${this._onGridKeydown}>
           <thead>
             <tr>
-              ${shortDays.map((name, i) => html`<th scope="col" abbr=${longDays[i]}>${name}</th>`)}
+              ${shortDays.map((name, i) => html`<th part="weekday" scope="col" abbr=${longDays[i]}>${name}</th>`)}
             </tr>
           </thead>
           <tbody>
             ${weeks.map((week) => html`
               <tr>
-                ${week.map((day) => (day === null ? html`<td></td>` : this._renderDay(day, selected, now)))}
+                ${week.map((day) => (day === null ? html`<td part="empty"></td>` : this._renderDay(day, selected, now)))}
               </tr>
             `)}
           </tbody>
@@ -495,10 +527,11 @@ export class DatePicker extends LitElement {
     const disabled = this._isDisabled;
 
     return html`
-      <label class="label" for="input">${this.label}</label>
+      <label class="label" part="label" for="input">${this.label}</label>
       <div class="input-container">
         <input
           id="input"
+          part="input"
           type="text"
           role="combobox"
           placeholder="MM/DD/YYYY"
@@ -516,6 +549,7 @@ export class DatePicker extends LitElement {
         />
         <button
           class="toggle"
+          part="button"
           type="button"
           ?disabled=${disabled}
           aria-label=${buttonLabel}
@@ -529,8 +563,8 @@ export class DatePicker extends LitElement {
           </svg>
         </button>
       </div>
-      <p id="hint" class="hint">${strings.hint}</p>
-      <p id="error" class="error" role="alert">${this._shownProblem ? this._message(this._shownProblem) : ''}</p>
+      <p id="hint" class="hint" part="hint">${strings.hint}</p>
+      <p id="error" class="error" part="error" role="alert">${this._shownProblem ? this._message(this._shownProblem) : ''}</p>
       ${this._isOpen ? this._renderCalendar() : nothing}
     `;
   }
@@ -704,4 +738,16 @@ export class DatePicker extends LitElement {
       border: 0;
     }
   `;
+}
+
+/** The events the picker fires, so `addEventListener('change', ...)` knows `event.detail`. */
+export interface DatePickerEventMap extends HTMLElementEventMap {
+  change: DatePickerChangeEvent;
+}
+
+export interface DatePicker {
+  addEventListener<K extends keyof DatePickerEventMap>(type: K, listener: (this: DatePicker, event: DatePickerEventMap[K]) => unknown, options?: boolean | AddEventListenerOptions): void;
+  addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+  removeEventListener<K extends keyof DatePickerEventMap>(type: K, listener: (this: DatePicker, event: DatePickerEventMap[K]) => unknown, options?: boolean | EventListenerOptions): void;
+  removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
 }

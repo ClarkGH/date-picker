@@ -140,6 +140,23 @@ test.describe('styling', () => {
     await expect(picker(page, 'themed').locator('select#year')).toHaveCSS('font-size', '20px');
   });
 
+  test('::part() rules from the page reach each part', async ({ page }) => {
+    await freezeToday(page);
+    await page.goto('/e2e/fixture.html');
+    const root = picker(page, 'parts');
+    await expect(root.locator('input')).toHaveCSS('border-top-width', '3px');
+    await root.locator('input').press('ArrowDown');
+    await expect(root.locator('td[aria-selected="true"]')).toBeFocused();
+
+    await expect(root.locator('.date-picker')).toHaveCSS('box-shadow', 'rgb(0, 0, 0) 0px 4px 12px 0px');
+    await expect(root.locator('th').first()).toHaveCSS('text-transform', 'uppercase');
+    await expect(root.locator('td[aria-selected="true"]')).toHaveCSS('border-top-left-radius', '50%');
+    await expect(root.locator('td[aria-current="date"]')).toHaveCSS('text-decoration-line', 'underline');
+    await expect(root.locator('td[part="empty"]').first()).toHaveCSS('border-top-color', 'rgba(0, 0, 0, 0)');
+    // A day that's neither selected nor today gets none of those
+    await expect(root.locator('td[part="day"]').first()).toHaveCSS('border-top-left-radius', '0px');
+  });
+
   test('the focus ring ignores the theme', async ({ page }) => {
     await page.goto('/e2e/fixture.html');
     await picker(page, 'themed').locator('input').press('ArrowDown');

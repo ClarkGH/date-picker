@@ -5,13 +5,39 @@ export type DatePickerChangeEvent = CustomEvent<{
 }>;
 /**
  * A text input plus a calendar popup (WAI-ARIA APG date picker combobox).
- * Value is MM/DD/YYYY or ''. Fires `change` with `detail.value` when the value changes.
- * Form-associated: give it a `name` and it submits with its <form>.
+ * Value is MM/DD/YYYY or ''. Form-associated: give it a `name` and it submits with its <form>.
  * Registered by define.ts. How it works and why: docs/date-picker.md
+ *
+ * @tagname consistent-date-picker
+ * @fires {DatePickerChangeEvent} change - The user changed the date. `event.detail.value` is the new value
+ * @cssprop [--consistent-date-picker-font-size=1rem] - Calendar text, including the month and year dropdowns
+ * @cssprop [--consistent-date-picker-background=Canvas] - Calendar background
+ * @cssprop [--consistent-date-picker-text-color=CanvasText] - Calendar text color
+ * @cssprop [--consistent-date-picker-border-color=currentColor] - Calendar and cell borders
+ * @cssprop [--consistent-date-picker-radius=0] - Calendar corners
+ * @cssprop [--consistent-date-picker-accent=Highlight] - Selected day background
+ * @cssprop [--consistent-date-picker-accent-text=HighlightText] - Selected day text
+ * @cssprop [--consistent-date-picker-error-color=#b3261e] - Error text and invalid outline. #f2b8b5 in dark mode
+ * @csspart label - The text above the field
+ * @csspart input - The text field
+ * @csspart button - The calendar button
+ * @csspart hint - The format hint under the field
+ * @csspart error - The error message under the field
+ * @csspart calendar - The calendar popup
+ * @csspart header - The row holding the month and year dropdowns
+ * @csspart month - The month dropdown
+ * @csspart year - The year dropdown
+ * @csspart grid - The table of days
+ * @csspart weekday - A day-name column header
+ * @csspart day - A day. Also `selected` on the selected day, and `today` on today
+ * @csspart selected - The selected day, alongside `day`
+ * @csspart today - Today, alongside `day`
+ * @csspart empty - A blank cell before the 1st or after the last day
  */
 export declare class DatePicker extends LitElement {
+    /** @internal */
     static formAssociated: boolean;
-    /** delegatesFocus: `picker.focus()` and label clicks reach the inner input. */
+    /** @internal delegatesFocus: `picker.focus()` and label clicks reach the inner input. */
     static shadowRootOptions: ShadowRootInit;
     /** The committed value: always a valid MM/DD/YYYY string, or '' when empty. */
     selectedDate: string;
@@ -60,9 +86,11 @@ export declare class DatePicker extends LitElement {
     private get _isDisabled();
     private _currentProblem;
     private _syncForm;
-    /** The `selecteddate` attribute is the default value, like `value` on a native input. */
+    /** @internal The `selecteddate` attribute is the default value, like `value` on a native input. */
     formResetCallback(): void;
+    /** @internal */
     formDisabledCallback(disabled: boolean): void;
+    /** @internal */
     formStateRestoreCallback(state: string | File | FormData | null): void;
     /** Falls back instead of letting a bad tag make Intl throw mid-render. */
     private get _locale();
@@ -97,4 +125,14 @@ export declare class DatePicker extends LitElement {
     private _renderCalendar;
     render(): import("lit").TemplateResult<1>;
     static styles: import("lit").CSSResult;
+}
+/** The events the picker fires, so `addEventListener('change', ...)` knows `event.detail`. */
+export interface DatePickerEventMap extends HTMLElementEventMap {
+    change: DatePickerChangeEvent;
+}
+export interface DatePicker {
+    addEventListener<K extends keyof DatePickerEventMap>(type: K, listener: (this: DatePicker, event: DatePickerEventMap[K]) => unknown, options?: boolean | AddEventListenerOptions): void;
+    addEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+    removeEventListener<K extends keyof DatePickerEventMap>(type: K, listener: (this: DatePicker, event: DatePickerEventMap[K]) => unknown, options?: boolean | EventListenerOptions): void;
+    removeEventListener(type: string, listener: EventListenerOrEventListenerObject, options?: boolean | EventListenerOptions): void;
 }
