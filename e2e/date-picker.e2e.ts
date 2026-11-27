@@ -66,7 +66,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
 
 test.describe('styling', () => {
   /** Opens a picker and reads the calendar's and the selected day's computed styles. */
-  async function openAndRead(page: Page, root: ReturnType<typeof picker>) {
+  async function openAndRead(root: ReturnType<typeof picker>) {
     await root.locator('input').press('ArrowDown');
     const cell = root.locator('td[aria-selected="true"]');
     await expect(cell).toBeFocused();
@@ -94,7 +94,7 @@ test.describe('styling', () => {
   test('with no custom properties set, it looks the same as before', async ({ page }) => {
     await page.goto('/');
     await page.locator('date-picker input').fill('11/03/2026');
-    const { calendar, day } = await openAndRead(page, page.locator('date-picker'));
+    const { calendar, day } = await openAndRead(page.locator('date-picker'));
 
     expect(calendar.fontSize).toBe('16px');
     expect(calendar.background).toBe(await systemColor(page, 'Canvas'));
@@ -126,7 +126,7 @@ test.describe('styling', () => {
 
   test('every custom property reaches the calendar', async ({ page }) => {
     await page.goto('/e2e/fixture.html');
-    const { calendar, day } = await openAndRead(page, picker(page, 'themed'));
+    const { calendar, day } = await openAndRead(picker(page, 'themed'));
 
     expect(calendar).toEqual({
       fontSize: '20px',

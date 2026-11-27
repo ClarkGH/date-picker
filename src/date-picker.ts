@@ -237,9 +237,7 @@ export class DatePicker extends LitElement {
 
     try {
       // The top layer escapes overflow clipping and z-index. Without the popover API it's in normal flow
-      // TypeScript 4.9's DOM types predate popovers; drop the cast after the upgrade
-      const calendar = this._calendar as HTMLElement & { showPopover?: () => void };
-      if (typeof calendar.showPopover === 'function') calendar.showPopover();
+      if (typeof this._calendar.showPopover === 'function') this._calendar.showPopover();
       this._popper = createPopper(this._anchor, this._calendar, {
         placement: 'bottom',
         modifiers: [{ name: 'offset', options: { offset: [0, 8] } }],

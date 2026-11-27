@@ -4,9 +4,8 @@
     "noEmit": true,
     "declaration": false,
     "emitDeclarationOnly": false,
-    // Without this, every @types package is loaded. Vitest pulls in @types/node 26, which TS 4.9 cannot parse
-    "types": []
+    "rootDir": "."
   },
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts", "e2e/**/*.ts"],
   "exclude": []
 }
