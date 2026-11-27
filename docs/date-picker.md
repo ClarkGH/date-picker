@@ -26,6 +26,7 @@ The core idea: what the field *shows* and the date that's *committed* are two se
 | [index.ts](../src/index.ts) | The main entry: exports the class and types, registers nothing |
 | [define.ts](../src/define.ts) | The `/define` entry: registers the tag, safely, if it isn't already taken |
 | [react.ts](../src/react.ts) | The `/react` entry: a React component made with `@lit/react`, which registers the tag on import |
+| [vue.ts](../src/vue.ts) | Types only: tells Vue's template checker what the tag accepts. Becomes `types/vue.d.ts`, the `/vue` entry |
 | [custom-elements-manifest.config.mjs](../custom-elements-manifest.config.mjs) | How `pnpm analyze` builds `custom-elements.json` from the class's JSDoc |
 
 ## Rules
@@ -180,6 +181,9 @@ Choices that might look odd, and why.
 | The wrapper's event is `onDateChange`, not `onChange` | React treats `onChange` as its own change handler and passes its own event object. A new name gets the real event, with `detail` |
 | The wrapper registers the tag on import | React users import one thing. It goes through the same guarded `define` |
 | `react` is an optional peer dependency | Only the `/react` entry uses it, so Lit and Vue apps never install it |
+| Vue types through `GlobalComponents`, as a types-only entry | It's how Vue learns about globally available tags. Types only, because Vue needs no runtime help, just the `isCustomElement` setting |
+| The Vue props type is built from the class | `Pick<DatePicker, ...>` means a renamed property breaks the Vue types at compile time, not silently |
+| `@change` is typed through an `onChange` prop | Vue checks `@change` against `onChange`, so that's where the event's type goes |
 | Registering is a separate import (`/define`) | Importing the class shouldn't have side effects. It lets apps pick their own tag, and keeps server rendering from touching `customElements` |
 | `define` checks before registering | Registering a tag twice throws, which would crash a page that loads two copies. It warns instead |
 | `.js` on relative imports in `.ts` files | TypeScript copies import paths into the type files as written. Projects using `node16` or `nodenext` resolution need the extension, or the types fail to load |

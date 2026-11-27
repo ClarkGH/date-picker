@@ -64,6 +64,14 @@ vue({ template: { compilerOptions: { isCustomElement: (tag) => tag === 'consiste
 <consistent-date-picker :selectedDate="value" @change="(e) => (value = e.detail.value)" />
 ```
 
+With TypeScript, add the picker's template types once, in any `.d.ts` file your project includes (like `src/env.d.ts`):
+
+```ts
+/// <reference types="consistent-date-picker/vue" />
+```
+
+Then your editor and `vue-tsc` check the tag: a number for `selectedDate` is an error, and `e.detail.value` in `@change` is known to be a string. To also catch a misspelled prop, turn on `strictTemplates` in your tsconfig's `vueCompilerOptions`. Without it, Vue treats unknown props as plain attributes.
+
 **React 19:** `onChange` works, but React passes its own event object, which has no `detail`. Read the picker instead, like `e.target.value` on an input:
 
 ```jsx

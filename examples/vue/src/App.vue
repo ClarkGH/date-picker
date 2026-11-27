@@ -1,4 +1,4 @@
-<script setup>
+<script setup lang="ts">
 import { ref } from 'vue';
 
 const value = ref('');
@@ -6,14 +6,14 @@ const count = ref(0);
 const last = ref('');
 const submitted = ref('');
 
-function onChange(e) {
+function onChange(e: CustomEvent<{ value: string }>) {
   value.value = e.detail.value;
   count.value += 1;
   last.value = e.detail.value;
 }
 
-function onSubmit(e) {
-  submitted.value = JSON.stringify(Object.fromEntries(new FormData(e.target)));
+function onSubmit(e: Event) {
+  submitted.value = JSON.stringify(Object.fromEntries(new FormData(e.target as HTMLFormElement)));
 }
 </script>
 

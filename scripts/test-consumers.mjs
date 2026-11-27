@@ -2,7 +2,7 @@
 // and runs the smoke test against each one. Production builds, because tree-shaking bugs
 // (like a wrong `sideEffects`) only show up there.
 import { execSync } from 'node:child_process';
-import { mkdirSync, readdirSync, renameSync, rmSync } from 'node:fs';
+import { mkdirSync, readFileSync, readdirSync, renameSync, rmSync } from 'node:fs';
 
 const APPS = ['lit', 'vue', 'react19', 'react18', 'react19-wrapper'];
 const PACK_DIR = 'examples/.pack';
@@ -28,6 +28,8 @@ try {
     // A clean install every time, so the app can't keep an older copy of the tarball
     rmSync(`${dir}/node_modules`, { recursive: true, force: true });
     run('pnpm install --no-lockfile', dir);
+    // Apps written in TypeScript also check the package's types, like `consistent-date-picker/vue`
+    if (JSON.parse(readFileSync(`${dir}/package.json`, 'utf8')).scripts?.typecheck) run('pnpm typecheck', dir);
     run('pnpm build', dir);
   }
 

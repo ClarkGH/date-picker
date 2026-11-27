@@ -17,7 +17,7 @@ Each phase ends with a check: something you can run that proves the phase is don
 - [x] Phase 4: Custom Elements Manifest and types (2026-11-27)
 - [x] Phase 5: styling API (2026-11-27)
 - [x] Phase 6: React adapter (2026-11-27)
-- [ ] Phase 7: Vue polish
+- [x] Phase 7: Vue polish (2026-11-27)
 - [ ] Phase 8: SSR safety
 - [ ] Phase 9: docs and release
 
@@ -138,6 +138,8 @@ Only if Phase 0 picked React 18 support.
 **Check:** the consumer smoke spec passes in `examples/react18`, and `publint`/`attw` are still clean with the new entry.
 
 ## Phase 7: Vue polish
+
+*Done 2026-11-27.* [src/vue.ts](src/vue.ts) adds the tag to Vue's `GlobalComponents`, with props picked from the class plus a typed `onChange`. It ships as the types-only `./vue` entry, with `vue` an optional peer. Apps opt in with `/// <reference types="consistent-date-picker/vue" />`. The Vue example is now TypeScript, and `test:consumers` runs `vue-tsc` on it before building. [TypeChecks.vue](examples/vue/src/TypeChecks.vue) holds three expected errors: a misspelled prop, a wrong type, and misusing `e.detail.value`. With loosened types, `vue-tsc` fails. Finding: a misspelled prop is only caught with `strictTemplates`, which is the app's choice, so the docs say so. No wrapper for `v-model`: the `:selectedDate` plus `@change` pattern worked fine in the example.
 
 - Docs: `compilerOptions.isCustomElement` for the Vue plugin, binding `.selectedDate` as a property, and the `@change` handler.
 - A `vue.d.ts` that adds the tag to Vue's `GlobalComponents`, so templates get prop checking. [VERIFY] the exact way to declare custom elements for Vue's template type checker (Volar) in the current Vue version.
