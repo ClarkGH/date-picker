@@ -1,7 +1,7 @@
 {
   "name": "consistent-date-picker",
-  "private": true,
-  "version": "0.8.0",
+  "version": "1.0.0",
+  "description": "An accessible date picker web component that looks and works the same in every browser. Works in plain HTML, Lit, Vue and React.",
   "license": "MIT",
   "publishConfig": {
     "access": "public"
@@ -39,6 +39,10 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ClarkGH/date-picker.git"
+  },
+  "homepage": "https://github.com/ClarkGH/date-picker#readme",
+  "bugs": {
+    "url": "https://github.com/ClarkGH/date-picker/issues"
   },
   "keywords": [
     "date-picker",

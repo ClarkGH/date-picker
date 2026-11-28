@@ -8,7 +8,7 @@ Two kinds of tests. Fast ones (Vitest) check the logic in a fake browser. Slower
 pnpm test                              # Vitest: unit and component specs
 pnpm typecheck                         # TypeScript over src/ and e2e/, specs included
 pnpm build                             # declarations + library build
-pnpm exec playwright install chromium  # once, downloads the browser
+pnpm exec playwright install chromium firefox webkit  # once, downloads the browsers
 pnpm test:e2e                          # Playwright + axe; starts the dev server itself
 pnpm test:consumers                    # packs the library and tests it in the five example apps
 ```
@@ -41,6 +41,7 @@ pnpm test:consumers                    # packs the library and tests it in the f
 | jsdom has no layout, colors, focus rings, form association, `delegatesFocus` or popovers | Those are tested in Playwright |
 | `axe` checks rules, not experience | A clean run doesn't prove it's pleasant with a screen reader. That needs a person. Orca was tested by hand on 2026-11-27; NVDA and VoiceOver haven't been yet |
 | Hydration can't be tested in jsdom from Node | Node picks each package's `node` build even with browser globals faked, and `@lit/react`'s `node` build never sets properties. Only a real browser bundle tests hydration, hence `react19-ssr` |
+| The browser tests run in Chromium, Firefox and WebKit | Browsers differ most in exactly what this picker relies on: popovers, form association and `delegatesFocus`. On Linux, WebKit needs the `libavif16` system library (`sudo apt-get install libavif16`) |
 | `tsconfig.spec.json` exists | The main config emits declarations, and specs shouldn't land in `types/` |
 
 ## Navigation

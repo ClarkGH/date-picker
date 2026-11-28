@@ -3,7 +3,7 @@
 - A text input with a calendar popup, as one web component
 - Looks and behaves the same in every browser
 
-Type a date as MM/DD/YYYY or pick one from the calendar. It's keyboard and screen-reader friendly, meets WCAG 2.2 AA, and works in forms like a normal input.
+Type a date as MM/DD/YYYY or pick one from the calendar. It's keyboard and screen-reader friendly, built to WCAG 2.2 AA (checked with axe and a screen reader), and works in forms like a normal input.
 
 Date pickers look like a weekend project. They aren't. Most of the work is in the edge cases: zero-based months, dates that roll over, timezones, popups that leak or float in the wrong place, and controls that drift out of sync. [Pitfalls](pitfalls.md) lists the ones this project ran into or designed around.
 
@@ -26,7 +26,7 @@ The native input looks different in every browser and on every OS, and its forma
 
 - Test with NVDA and VoiceOver. Orca on Linux was tested by hand on 2026-11-27 and works well. axe checks rules and attributes, not what's actually announced
 - A typed format and week start that follow the locale (see [Pitfalls: format ambiguity](pitfalls.md#format-ambiguity))
-- Run the browser tests in Firefox and WebKit too. Only Chromium runs now
+- Run the browser tests in WebKit. It's in the Playwright config, but on Linux it needs the `libavif16` system library first. Chromium and Firefox pass
 
 ## Navigation
 
@@ -34,3 +34,4 @@ The native input looks different in every browser and on every OS, and its forma
 - **[How it works](date-picker.md)** - Rules, state, the Popper lifecycle, decisions
 - **[Testing](testing.md)** - Commands, coverage, gotchas
 - **[Pitfalls](pitfalls.md)** - Problems most date pickers hit, and what this one does about each
+- **[Changelog](../CHANGELOG.md)** - What's in each release

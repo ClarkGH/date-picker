@@ -19,7 +19,7 @@ Each phase ends with a check: something you can run that proves the phase is don
 - [x] Phase 6: React adapter (2026-11-27)
 - [x] Phase 7: Vue polish (2026-11-27)
 - [x] Phase 8: SSR safety (2026-11-27)
-- [ ] Phase 9: docs and release
+- [x] Phase 9: docs and release (2026-11-27). Ready to publish: Clark's steps are at the end of Phase 9
 
 ## Rules for the whole plan
 
@@ -165,6 +165,20 @@ Server renderers (Next.js, Nuxt, Astro) run imports in Node, where `customElemen
 **Check:** `node -e "import('<name>')"` against the packed tarball doesn't throw. The portfolio site (Astro) can render the picker with `client:only`. That's a local trial, not a change to the portfolio.
 
 ## Phase 9: docs and release
+
+*Done 2026-11-27, except the publish itself.* The README now opens with install, usage for each framework, styling, and doc links. Clark's own lines are kept below them. `CHANGELOG.md` starts at `1.0.0`. `package.json` is `1.0.0`, has no `private`, and gains `description`, `homepage` and `bugs`. `pnpm publish --dry-run` packs 15 files (14.9 KB) with public access. typecheck, unit, e2e, `test:consumers`, publint, attw and `pnpm audit --prod` are all clean. Changes from the plan:
+- No `docs/frameworks.md`: [usage.md](docs/usage.md) already has the per-framework guide and server rendering, all tested, and a second copy would drift.
+- The Decisions moves were done along the way, in each phase.
+- "A fresh app that follows only the README" is covered by the example apps. They use the same patterns as the README's snippets and install the packed tarball the same way.
+
+**Clark's release steps:**
+0. Install WebKit's missing library (`sudo apt-get install libavif16`), then run `pnpm test:e2e --project webkit`, or ask Claude to. If it passes, update the README's Browser support line to say WebKit passes. Firefox passed 29 of 29 on 2026-11-27.
+1. Commit, then push to GitHub *before* publishing. npm turns the README's relative links into links to the repo, so they 404 until the docs are pushed.
+2. `npm login`, with 2FA on the account.
+3. From a clean `main`: `pnpm publish`. pnpm refuses on a dirty tree or another branch, which is a feature.
+4. `git tag v1.0.0 && git push --tags`, and add the date to the `1.0.0` heading in CHANGELOG.md.
+5. Check `npm view consistent-date-picker`, and install it into one example by name instead of from the tarball.
+6. The portfolio's Date Picker page can then mention the install command, in your words.
 
 - README: install, one short example per framework, and links to the docs.
 - `docs/frameworks.md`: the full per-framework guide (Phases 6–8). Add an INDEX.md entry and Navigation links, in the same format as the other docs.

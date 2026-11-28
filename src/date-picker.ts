@@ -265,9 +265,15 @@ export class DatePicker extends LitElement {
     try {
       // The top layer escapes overflow clipping and z-index. Without the popover API it's in normal flow
       if (typeof this._calendar.showPopover === 'function') this._calendar.showPopover();
+      // fixed: in the top layer, WebKit reports the DOM's positioned ancestor as offsetParent, so
+      // `absolute` coordinates land in the wrong place. altAxis slides a tall calendar up to stay on screen
       this._popper = createPopper(this._anchor, this._calendar, {
         placement: 'bottom',
-        modifiers: [{ name: 'offset', options: { offset: [0, 8] } }],
+        strategy: 'fixed',
+        modifiers: [
+          { name: 'offset', options: { offset: [0, 8] } },
+          { name: 'preventOverflow', options: { altAxis: true, padding: 8 } },
+        ],
       });
       // Popper positions async. Focusing first would scroll the page to the calendar's temporary spot
       this._popper.forceUpdate();
