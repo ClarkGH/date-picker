@@ -30,6 +30,13 @@ import 'consistent-date-picker/define';
 </form>
 ```
 
+**Without a bundler**, load it from a CDN that resolves its imports, like esm.sh:
+
+```html
+<script type="module" src="https://esm.sh/consistent-date-picker@1/define"></script>
+<consistent-date-picker name="start" label="Start date"></consistent-date-picker>
+```
+
 It submits under its `name`, blocks the form when it's empty and `required`, and fires `change` with `event.detail.value` (always `MM/DD/YYYY`, or `''`).
 
 **Lit**
@@ -79,7 +86,7 @@ Older browsers still get a working picker, with two gaps:
 - **Without the popover API**, the calendar opens in place. An `overflow: hidden` parent can clip it.
 - **Without form-associated custom elements** (Safari before 16.4), the picker isn't sent with its form.
 
-The browser tests pass in Chromium and Firefox. WebKit, Safari's engine, is set up but hasn't run yet.
+The browser tests pass in Chromium, Firefox and WebKit (Safari's engine), and the example apps were checked by hand in each framework.
 
 ## Docs
 

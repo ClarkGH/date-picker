@@ -1,7 +1,7 @@
 {
   "name": "consistent-date-picker",
   "version": "1.0.0",
-  "description": "An accessible date picker web component that looks and works the same in every browser. Works in plain HTML, Lit, Vue and React.",
+  "description": "A date-picker web component for HTML, React, Vue, and Lit. Accessible and consistent across browsers.",
   "license": "MIT",
   "publishConfig": {
     "access": "public"

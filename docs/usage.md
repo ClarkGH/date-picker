@@ -241,7 +241,7 @@ The package ships `custom-elements.json`, the standard description of the tag. E
 - `MM/DD/YYYY` only, and weeks start on Sunday. `locale` changes names, not the format
 - Years 1 to 9999
 - One date: no ranges, no times, no timezones
-- The browser tests pass in Chromium and Firefox; WebKit hasn't run yet. Full support needs Chrome or Edge 114, Firefox 125 or Safari 17 (see the [README](../README.md#browser-support))
+- The browser tests pass in Chromium, Firefox and WebKit. Full support needs Chrome or Edge 114, Firefox 125 or Safari 17 (see the [README](../README.md#browser-support))
 
 ## Navigation
 

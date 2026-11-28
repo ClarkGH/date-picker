@@ -264,16 +264,16 @@ export class DatePicker extends LitElement {
 
     try {
       // The top layer escapes overflow clipping and z-index. Without the popover API it's in normal flow
-      if (typeof this._calendar.showPopover === 'function') this._calendar.showPopover();
-      // fixed: in the top layer, WebKit reports the DOM's positioned ancestor as offsetParent, so
-      // `absolute` coordinates land in the wrong place. altAxis slides a tall calendar up to stay on screen
+      if (typeof this._calendar.showPopover === 'function') {
+        this._calendar.showPopover();
+        // In the top layer the calendar is positioned against the page, so its offsetParent is really
+        // null, as Chromium and Firefox report. WebKit reports the nearest positioned ancestor instead,
+        // and Popper, which measures from offsetParent, would place the calendar wrongly
+        Object.defineProperty(this._calendar, 'offsetParent', { get: () => null, configurable: true });
+      }
       this._popper = createPopper(this._anchor, this._calendar, {
         placement: 'bottom',
-        strategy: 'fixed',
-        modifiers: [
-          { name: 'offset', options: { offset: [0, 8] } },
-          { name: 'preventOverflow', options: { altAxis: true, padding: 8 } },
-        ],
+        modifiers: [{ name: 'offset', options: { offset: [0, 8] } }],
       });
       // Popper positions async. Focusing first would scroll the page to the calendar's temporary spot
       this._popper.forceUpdate();
@@ -577,8 +577,10 @@ export class DatePicker extends LitElement {
 
   static styles = css`
     /* Error colors: 6.5:1 on white, 9.1:1 on #242424 (WCAG 1.4.3 needs 4.5:1) */
+    /* text-align: start, so a centered parent doesn't center the label, hint and error */
     :host {
       --_error: var(--consistent-date-picker-error-color, #b3261e);
+      text-align: start;
       display: flex;
       flex-direction: column;
       width: 100%;

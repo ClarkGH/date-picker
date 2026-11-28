@@ -51,11 +51,6 @@ body {
   margin: 0;
 }
 
-/* The field's own text stays left-aligned; only its box is centered */
-.demo consistent-date-picker {
-  text-align: left;
-}
-
 @media (prefers-color-scheme: light) {
   :root {
     color: #213547;

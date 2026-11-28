@@ -180,6 +180,9 @@ Choices that might look odd, and why.
 | A React wrapper, from `@lit/react` | React 18 sets props as attributes and can't listen for custom events. The wrapper sets properties and maps events. It's Lit's own adapter, so it follows Lit |
 | The wrapper's event is `onDateChange`, not `onChange` | React treats `onChange` as its own change handler and passes its own event object. A new name gets the real event, with `detail` |
 | The wrapper registers the tag on import | React users import one thing. It goes through the same guarded `define` |
+| `@lit/react` is a normal dependency, not a peer | It's small and has no dependencies, and only the `/react` entry imports it, so other apps never bundle it. As a peer, every React user would need a second install step |
+| An `offsetParent` override while the calendar is in the top layer | There, the calendar is positioned against the page. Chromium and Firefox report `null`, but WebKit reports the nearest positioned ancestor, so Popper placed the calendar wrongly inside any `position: relative` container. `strategy: 'fixed'` also fixed WebKit, but slid a tall calendar over the field |
+| `text-align: start` on the host | A parent with `text-align: center` would otherwise center the label, hint and error |
 | `react` is an optional peer dependency | Only the `/react` entry uses it, so Lit and Vue apps never install it |
 | Vue types through `GlobalComponents`, as a types-only entry | It's how Vue learns about globally available tags. Types only, because Vue needs no runtime help, just the `isCustomElement` setting |
 | The Vue props type is built from the class | `Pick<DatePicker, ...>` means a renamed property breaks the Vue types at compile time, not silently |

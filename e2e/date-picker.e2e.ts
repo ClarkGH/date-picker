@@ -157,6 +157,22 @@ test.describe('styling', () => {
     await expect(root.locator('td[part="day"]').first()).toHaveCSS('border-top-left-radius', '0px');
   });
 
+  test('a centered parent does not center the label, hint or error', async ({ page }) => {
+    await page.goto('/e2e/fixture.html');
+    const root = picker(page, 'centered');
+    const host = (await root.boundingBox())!;
+    for (const part of ['label', 'hint']) {
+      await expect(root.locator(`[part="${part}"]`)).toHaveCSS('text-align', 'start');
+    }
+    // The label's text starts at the host's left edge, not in the middle
+    const textLeft = await root.locator('[part="label"]').evaluate((el) => {
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      return range.getBoundingClientRect().left;
+    });
+    expect(Math.abs(textLeft - host.x)).toBeLessThan(2);
+  });
+
   test('the focus ring ignores the theme', async ({ page }) => {
     await page.goto('/e2e/fixture.html');
     await picker(page, 'themed').locator('input').press('ArrowDown');
